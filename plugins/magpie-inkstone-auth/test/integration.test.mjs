@@ -1,7 +1,7 @@
 /**
  * 整个插件的端到端测试（纯 mock fetch，不碰真实厂商）。
- * 覆盖：入口导出、config、网页登录（SSO URL + 粘贴回跳地址）、双通道模型并集、
- *       usage 窗口、loader.fetch 的双通道路由、Orbit 协议桥、refresh。
+ * 覆盖：入口导出、config、两种登录（客户端导入 oauth 形态 / 网页 SSO + 粘贴回跳地址）、
+ *       双通道模型并集、usage 窗口、loader.fetch 的双通道路由、Orbit 协议桥、refresh。
  * 独立脚本：node test/integration.test.mjs 或 bun test/integration.test.mjs。
  */
 import assert from "node:assert/strict";
@@ -156,13 +156,36 @@ let oauthAuth;
   ok("网页登录：SSO URL + 粘贴回跳地址/裸 code/任意文本；换票、签发 Key");
 }
 
-/* ---- 2b) 第一种登录：本机端砚客户端导入（type:"api"，无网页 / 无扫码） ---- */
+/* ---- 2b) 第一种登录：本机端砚客户端导入（oauth 形态，无 URL / 无输入框） ---- */
 {
   const method = hooks.auth.methods[0];
-  assert.equal(method.type, "api");
+  assert.equal(method.type, "oauth");
   assert.match(method.label, /端砚客户端/);
-  assert.equal(typeof method.authorize, "function");
-  ok("本机端砚客户端登录：api 方式，不打开浏览器、无需扫码与粘贴");
+  const flow = await method.authorize(undefined, {});
+  // magpie 宿主约定：oauth 方式 authorize 返回 {url, instructions, callback}；
+  // url 为空 ⇒ 不打开浏览器，宿主在后台直接调 callback 完成导入（不弹任何输入框）。
+  assert.equal(flow.url, "", "不打开任何网页");
+  assert.ok(flow.method !== "code", "不是 code 粘贴流程");
+  assert.match(flow.instructions, /不打开浏览器/, "说明文字写明无需浏览器");
+  assert.equal(typeof flow.callback, "function");
+
+  // callback 也落成 oauth 形态：accountId 是用户名（账号列表显示用户名，
+  // 不是「API key …」尾号），refresh/access 都是 JWT，宿主可按 expires 后台续期。
+  // 与网页登录是同一个账号身份：宿主按 accountId/uid 去重，重登替换不新增。
+  // 本机可能真的装着端砚客户端（凭据可读），所以只验证注入凭据的落库形态，
+  // 不对「无凭据必失败」做断言（desktop.test.mjs 已覆盖失败分支）。
+  const withCred = await method.authorize(undefined, { credential: { jwt: JWT, uid: "u-1", username: "ada", expiresAtMs: Date.now() + 7200_000 } });
+  const imported = await withCred.callback("", {});
+  assert.equal(imported.type, "success");
+  assert.equal(imported.access, JWT);
+  assert.equal(imported.refresh, JWT);
+  assert.equal(imported.accountId, "ada");
+  assert.equal(imported.username, "ada");
+  assert.equal(imported.uid, "u-1", "uid 与网页登录一致（去重键）");
+  assert.ok(imported.expires > Date.now(), "expires 落在账号上，宿主才会跑后台 refresh");
+  assert.equal(imported.apiKey, "sk-test-123");
+  assert.equal(imported.key, undefined, "不再返回 api 方式的 {key, metadata}");
+  ok("本机端砚客户端登录：url 为空 + 说明文字 + callback 落成 oauth 形态（accountId=用户名，与网页登录同身份）");
 }
 
 /* ---- 2a) 从用户粘贴的各种文本里抠出 code ---- */

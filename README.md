@@ -8,7 +8,7 @@
 
 | 插件 | 供应商 id | 说明 | 登录方式 | 目录 |
 | --- | --- | --- | --- | --- |
-| magpie-inkstone-auth | `inkstone` | 书生·端砚（Discovery）云端模型：Orbit Agent + TokenPlan API 双通道、墨点用量 | Windows 本机端砚客户端一键导入（无需扫码），或网页 SSO | [plugins/magpie-inkstone-auth](./plugins/magpie-inkstone-auth) |
+| magpie-inkstone-auth | `inkstone` | 书生·端砚（Discovery）云端模型：Orbit Agent + TokenPlan API 双通道、墨点用量 | Windows 本机端砚客户端一键导入（无需浏览器、无需任何输入），或网页 SSO | [plugins/magpie-inkstone-auth](./plugins/magpie-inkstone-auth) |
 
 > 后续新插件都放进 `plugins/<name>/`，并补一行到上表。
 
@@ -60,7 +60,7 @@ magpie plugin add "F:\路径\magpie-plugin-pack\plugins\magpie-inkstone-auth"
 以 inkstone 为例：
 
 ```powershell
-magpie plugin login inkstone     # 选「从本机端砚客户端导入登录态」（Windows，无需扫码）
+magpie plugin login inkstone     # 选「从本机端砚客户端导入登录态」（Windows，无需浏览器、无需输入）
 magpie provider test inkstone    # 每种 API 发一个很小的请求
 magpie quota                     # 看墨点余额与 5h/7d 窗口
 magpie plugin                    # 看插件 / 账号 / 模型列表

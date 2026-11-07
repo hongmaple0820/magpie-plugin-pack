@@ -8,7 +8,7 @@
 
 | | 说明 |
 | --- | --- |
-| 登录 | **两种**：① 本机端砚客户端导入（`type:"api"`，Windows 专用，**不打开任何网页**，直接读 `%APPDATA%\inkstone-desktop` 的 DPAPI 凭据，推荐）；② 网页登录（`type:"oauth"`/`code`，magpie 打开 SSO 页 → 粘回跳地址）。两种都会自动签发并托管 TokenPlan API Key（删旧建新，永远能拿回完整值） |
+| 登录 | **两种**：① 本机端砚客户端导入（Windows 专用，**不打开任何网页、无需任何输入**，插件直接读 `%APPDATA%\inkstone-desktop` 的 DPAPI 凭据并自动完成，推荐）；② 网页登录（`type:"oauth"`/`method:"code"`，magpie 打开 SSO 页 → 粘回跳地址）。两种都自动签发并托管 TokenPlan API Key（删旧建新，永远能拿回完整值），账号都显示用户名 |
 | 模型 | `Orbit /local-agent/models` ∪ `TokenPlan /models`（只要 `openai_chat`）；**重名 id 走 TokenPlan API 通道**（标准 Chat Completions，少一次 `/chat/new`），Orbit 独有的走协议桥 |
 | 请求 | magpie 把 agent 的 API 转成 Chat Completions 交给 `loader.fetch`；本插件按模型路由：标准请求直发 `discovery-api.intern-ai.org.cn/v1/chat/completions`（Bearer Key），Orbit 请求经 `lib/bridge.mjs` 翻译并把 SSE 还原成 Chat Completions 流 |
 | 用量 | 墨点余额 + 5h/7d 窗口（已用量按 `limit - remaining` 换算，magpie 据此排序/停用账号）；`magpie quota` 与网关 `/v1/magpie/quotas` 都能看到 |
@@ -28,14 +28,16 @@ magpie plugin logout inkstone
 
 两种登录方式，`magpie plugin login inkstone` 或应用里「书生·端砚」那行点登录时选一个：
 
-**① 从本机端砚客户端导入（推荐，Windows）** —— `type:"api"`
+**① 从本机端砚客户端导入（推荐，Windows）**
 
-- 不打开浏览器、不扫码、不粘贴：插件直接读 `%APPDATA%\inkstone-desktop\credentials\credential_*.bin` + `Local State`，用系统自带 `powershell.exe`(5.1) 的 `-EncodedCommand` 内联脚本做 DPAPI 解包，`node:crypto` 做 AES-256-GCM 解密，拿到 uaa JWT 与 ssoUid。
-- **同账号重复登录只会替换、不会新增**：成功结果同时带 `accountId` / `uid` / `email`（顶层 + metadata 各一份），magpie 按这些字段去重。
+- 点一下就完事：插件读 `%APPDATA%\inkstone-desktop\credentials\credential_*.bin` + `Local State`，用系统自带 `powershell.exe`(5.1) 的 `-EncodedCommand` 内联脚本做 DPAPI 解包，`node:crypto` 做 AES-256-GCM 解密，拿到 uaa JWT 与 ssoUid。
+- **不打开浏览器、不扫码、不粘贴、不弹任何输入框**：登录方式按 magpie 的 oauth 约定声明（`authorize` 返回空 `url`），宿主直接在后台调 `callback` 完成导入；说明文字会告诉用户正在发生什么。
+- 账号按 oauth 形态落库（`access`/`refresh`/`expires` + 顶层 `accountId`），所以账号列表显示**用户名**（不是「API key …尾号」），JWT 到期前 magpie 还会在后台跑 `auth.refresh` 校验。
+- **同账号重复登录只会替换、不会新增**：成功结果带 `accountId` / `uid` / `email`，magpie 按这些字段去重。
 - 不需要 `pwsh`(PowerShell 7) / `AesGcm` / .ps1 文件，不受执行策略限制；不联网校验 JWT。签发 API Key 那一步会联网，失败不影响 Orbit 通道。
 - 要求：Windows、端砚桌面客户端已登录。凭据过期就在客户端里重新登录，再来 magpie 里重登一次。
 
-**② 网页登录（跨平台兜底）** —— `type:"oauth"` / `method:"code"`
+**② 网页登录（跨平台兜底）** —— `method:"code"`
 
 1. magpie 打开 OpenXLab SSO 登录页，用微信扫码或账号密码登录。
 2. 登录成功跳回 `https://discovery.intern-ai.org.cn/` 时，**立刻复制整条地址栏**（形如 `…/?code=uaa::code::…`）粘贴到输入框；也可以只粘 `uaa::code::` 开头的那一串。`lib/sso.mjs` 会从完整地址、裸 code、带说明文字的一整段、甚至百分号编码过的地址里把 code 抠出来。
@@ -84,6 +86,13 @@ m quota
 | `lib/catalog.mjs` | 每账号的模型并集、缓存、OpenCode Model 映射 |
 | `lib/usage.mjs` | 余额快照 → magpie usage 窗口 |
 | `lib/http.mjs` / `lib/constants.mjs` | 信封/错误/鉴权头、各端点常量 |
+| `icon.svg` | 插件图标源文件（墨砚造型）；`package.json` 的 `magpie.icon` 内嵌同一内容的 data URI |
+
+## magpie 里的显示
+
+- **图标**：`package.json` 的 `magpie.icon`（`data:image/svg+xml;base64,…`，≤1MB）。「插件 → 已安装」每行、Providers 添加面板、用量卡片都拿它当 logo；没有它会显示灰色拼图占位。`icon.svg` 是同一图案的源文件，改动后请同步重算 data URI（`install.test.mjs` 会校验两者一致）。
+- **名称**：`magpie.name`（书生·端砚）出现在「已安装」列表与 Providers 添加面板；`description` 是 npm / 详情页的说明文字；`magpie.summary.{en,zh}` 是社区市场卡片上的双语简介。
+- **登录提示**：两种登录方式的 `label` 就是「用哪种方式登录 书生·端砚？」的按钮文案；客户端导入的 `instructions` 会在登录进行时显示（明确告知：不打开浏览器、无需输入，失败该怎么做）。
 
 ## 测试
 
@@ -101,8 +110,8 @@ npm test
 
 ## 发布
 
-- `package.json` 已带 `keywords: ["opencode","opencode-plugin",…]`，npm 搜索 `<关键词> opencode` 能找到；`magpie.name` 让「已安装」里显示中文名，`magpie.maxConcurrency: 4` 限制每账号并发。
-- 从 npm 加：`magpie plugin add magpie-inkstone-auth`；固定版本 `…@0.1.0`；从 git：`github:owner/repo[#ref]`。
+- `package.json` 已带 `keywords: ["opencode","opencode-plugin",…]`，npm 搜索 `<关键词> opencode` 能找到；`magpie.name` 让「已安装」里显示中文名，`magpie.icon` 显示 logo，`magpie.maxConcurrency: 4` 限制每账号并发。
+- 从 npm 加：`magpie plugin add magpie-inkstone-auth`；固定版本 `…@0.1.1`；从 git：`github:owner/repo[#ref]`。
 - 想进推荐列表，给 `magpie-community/plugins` 的 `registry.json` 提 PR：
   ```json
   { "package": "magpie-inkstone-auth", "name": "书生·端砚", "providers": ["inkstone"],
@@ -117,3 +126,9 @@ npm test
 - TokenPlan 每账号最多 10 个 API Key，且**完整值只在创建响应里出现一次**（幂等重放只回 masked_key）。所以重新登录时插件会先删掉自己名下的旧 key 再建新的，保证每次都拿到完整 key，不会出现「API Key cannot be viewed again」导致 API 通道全 403。没有 API Key 时，API 通道模型不列出来，Orbit 通道模型照常可用。
 - Orbit 每次请求都要新建会话（`detached`），多一轮 `/chat/new` 往返；API 通道没有这个开销。
 - 插件能看到它转发的所有请求内容（对话、工具及结果），本插件只把它们发到 `*.intern-ai.org.cn`，不记日志、不落盘。
+
+## 从 0.1.0 升级
+
+0.1.0 把「本机客户端导入」声明成了 `type:"api"`，magpie 会弹一个「粘贴密钥」输入框、账号按 API key 落库（名字显示成「API key …尾号」）。0.1.1 起改为 oauth 约定（空 `url` + 后台 `callback`）：不弹任何输入框，账号显示用户名。
+
+**旧账号迁移**：用旧版登录过的账号还是 `{type:"api", key, metadata}` 形态，`normalizeAuth` 仍兼容可继续用；想让账号名变成用户名、并启用后台到期校验，重新登录一次即可（同账号会原地替换，不会新增）。

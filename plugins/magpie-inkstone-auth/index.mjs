@@ -2,9 +2,10 @@
  * magpie / OpenCode v1 供应商插件：书生·端砚（Discovery）。
  *
  * 一个供应商 `inkstone`、一次登录、N 个账号：
- *   - 登录：① magpie 打开 OpenXLab SSO 网页 → 粘贴回跳地址 → uaa JWT；
- *           ② Windows 上直接读本机端砚客户端的 DPAPI 凭据，无需扫码；
- *           两种方式都自动签发 TokenPlan API Key；插件不 spawn 浏览器、不用 DevTools；
+ *   - 登录：① Windows 上直接读本机端砚客户端的 DPAPI 凭据（oauth 约定、
+ *           空 url + 后台 callback，不打开任何网页、无需任何输入，推荐）；
+ *           ② magpie 打开 OpenXLab SSO 网页 → 粘贴回跳地址 → uaa JWT；
+ *           两种方式都自动签发 TokenPlan API Key，账号都落 oauth 形态（显示用户名）；
  *   - 模型：Orbit /local-agent/models 与 TokenPlan /models 的并集（重名走 API 通道）；
  *   - 请求：magpie 把 agent 的 API 转成 Chat Completions 交给 loader.fetch，
  *           本插件按模型把标准请求直发 TokenPlan，或经 lib/bridge.mjs 桥到 Orbit SSE；
@@ -84,7 +85,7 @@ async function buildAccount(jwt, { signal, session } = {}) {
   };
 }
 
-/** oauth（网页登录）：落成 {type:"oauth", access, refresh, expires, …}。 */
+/** 两种登录方式共用的落库形态：{type:"oauth", access, refresh, expires, accountId, …}。 */
 async function finishOAuthLogin(jwt, ctx) {
   const account = await buildAccount(jwt, ctx);
   return {
@@ -98,51 +99,52 @@ async function finishOAuthLogin(jwt, ctx) {
   };
 }
 
-/** api（本机客户端导入）：落成 {type:"api", key, metadata}，不打开任何网页。 */
-async function finishApiLogin(jwt, ctx) {
-  const account = await buildAccount(jwt, ctx);
-  const accountId = account.username || account.uid;
-  const email = /@/.test(account.username) ? account.username : undefined;
-  // magpie 靠 accountId / email / uid 去重：同账号重登必须替换而不是新增。
-  // api 方式的完整值只会存进 {type:"api", key, metadata}，所以去重字段
-  // 顶层和 metadata 里各放一份，避免第一次的旧账号（只有 metadata.uid）对不上。
-  return {
-    type: "success",
-    key: jwt,
-    accountId,
-    uid: account.uid,
-    ...(email ? { email } : {}),
-    metadata: {
-      ...account,
-      accountId,
-      ...(email ? { email } : {}),
-    },
-  };
-}
-
 /**
  * 两种登录方式：
- *  1.（第一项，推荐）本机端砚客户端导入：type:"api"，不打开任何网页，直接读
- *     %APPDATA%\inkstone-desktop 的 DPAPI 凭据。仅 Windows，见 lib/desktop.mjs。
+ *  1.（第一项，推荐）本机端砚客户端导入：Windows 专用，**不打开任何网页、不需要任何输入**。
+ *     magpie 宿主对「没有 url 的 oauth 登录」会直接在后台调 callback 完成导入，
+ *     所以 authorize 立即返回说明文字，实际读取 %APPDATA%\inkstone-desktop
+ *     的 DPAPI 凭据放在 callback 里做（见 lib/desktop.mjs）。
  *  2. 网页登录：type:"oauth" / method:"code"，magpie 打开 SSO 页，用户粘回跳地址。
  *     端砚 SSO 没有设备码 / 轮询端点，code 只在回跳 URL 里出现一次。
+ * 两种方式都落成 oauth 形态（access/refresh/expires + 顶层 accountId）：
+ *  - 账号列表直接显示用户名（而不是「API key …」尾号）；
+ *  - magpie 能按 expires 在后台跑 auth.refresh（到期前主动校验并补签 API Key）；
+ *  - 同账号重登靠 accountId/uid 去重替换。
+ * 之前的版本把客户端导入做成 type:"api" + authorize：GUI 会弹一个「粘贴密钥」
+ * 输入框（OpenCode 的 API key 对话框语义），且宿主按 API-key 方式落库，
+ * 账号名显示成「API key …尾号」—— 都与「一键导入、无需输入」的本意相反。
  * 把本地导入放第一，是因为 GUI/CLI 默认选第一个，且它完全不需要浏览器。
  */
 const methods = [
   {
-    type: "api",
-    label: "从本机端砚客户端导入登录态（Windows，无需扫码）",
+    type: "oauth",
+    label: "从本机端砚客户端导入登录态（推荐，Windows，无需浏览器）",
     async authorize(_inputs, context = {}) {
-      const signal = context?.signal;
-      try {
-        const cred = await readDesktopCredential({ signal });
-        return await finishApiLogin(cred.jwt, {
-          signal,
-          session: { uid: cred.uid, username: cred.username, expiresAtMs: cred.expiresAtMs },
-        });
-      } catch (error) {
-        return { type: "failed", error: error?.message || "读取端砚客户端凭据失败" };
-      }
+      // context.credential 仅测试注入用（与 readDesktopCredential 的返回同构），
+      // magpie 不会传它；真机流程在 callback 里读本机 DPAPI 凭据。
+      const inject = context?.credential;
+      return {
+        // url 为空：magpie 不会打开任何页面，直接在后台调 callback 完成导入。
+        url: "",
+        instructions: [
+          "正在从本机「端砚」桌面客户端导入登录态：不打开浏览器、无需扫码或粘贴，也不要输入任何内容。",
+          "插件会读取客户端的加密凭据（Windows DPAPI）自动完成登录并签发 TokenPlan API Key，几秒后账号会自动出现在这里。",
+          "如果失败：请确认已在端砚桌面客户端里登录过一次，再点「重试」。",
+        ].join("\n"),
+        async callback(_value, ctx = {}) {
+          const signal = ctx?.signal;
+          try {
+            const cred = inject ?? await readDesktopCredential({ signal });
+            return await finishOAuthLogin(cred.jwt, {
+              signal,
+              session: { uid: cred.uid, username: cred.username, expiresAtMs: cred.expiresAtMs },
+            });
+          } catch (error) {
+            return { type: "failed", error: error?.message || "读取端砚客户端凭据失败" };
+          }
+        },
+      };
     },
   },
   {

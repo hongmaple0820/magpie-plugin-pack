@@ -8,7 +8,7 @@ A collection of **magpie / OpenCode provider plugins**. Every plugin is a standa
 
 | Plugin | Provider id | What it does | Sign-in | Folder |
 | --- | --- | --- | --- | --- |
-| magpie-inkstone-auth | `inkstone` | Shusheng Inkstone (Discovery) cloud models: Orbit Agent + TokenPlan API dual channel, credit usage | Windows: one-click import from the local Inkstone desktop client (no QR scan), or web SSO | [plugins/magpie-inkstone-auth](./plugins/magpie-inkstone-auth) |
+| magpie-inkstone-auth | `inkstone` | Shusheng Inkstone (Discovery) cloud models: Orbit Agent + TokenPlan API dual channel, credit usage | Windows: one-click import from the local Inkstone desktop client (no browser, nothing to type), or web SSO | [plugins/magpie-inkstone-auth](./plugins/magpie-inkstone-auth) |
 
 > New plugins go into `plugins/<name>/` and get a row in the table above.
 
@@ -56,7 +56,7 @@ Then enable the plugin in Plugins → Installed and sign in.
 For inkstone:
 
 ```powershell
-magpie plugin login inkstone     # choose "Import from local Inkstone client" (Windows, no QR scan)
+magpie plugin login inkstone     # choose "Import from local Inkstone client" (Windows, no browser, nothing to type)
 magpie provider test inkstone    # send a tiny request for each API
 magpie quota                     # view credits and 5h/7d windows
 magpie plugin                    # list plugins / accounts / models

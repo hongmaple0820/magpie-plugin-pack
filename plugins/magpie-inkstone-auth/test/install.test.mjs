@@ -68,8 +68,14 @@ async function smoke(dir, label) {
 
   const hooks = await fns[0][1]({}, undefined);
   assert.ok(hooks.config && hooks.auth && hooks.provider);
-  assert.equal(hooks.auth.methods.length, 2, "网页登录 + 本机端砚客户端导入");
-  assert.equal(hooks.auth.methods[0].type, "api", "第一项是不打开浏览器的本机客户端导入");
+  assert.equal(hooks.auth.methods.length, 2, "客户端导入 + 网页登录");
+  assert.equal(hooks.auth.methods[0].type, "oauth", "第一项是无浏览器的本机客户端导入");
+  // 客户端导入的 authorize 立即返回：url 为空（宿主不打开浏览器、也不弹输入框），
+  // 实际导入由宿主在后台调 callback 完成。
+  const localFlow = await hooks.auth.methods[0].authorize(undefined, {});
+  assert.equal(localFlow.url, "");
+  assert.equal(typeof localFlow.callback, "function");
+  assert.match(localFlow.instructions, /不打开浏览器/);
 
   const cfg = {};
   await hooks.config(cfg);
@@ -124,11 +130,16 @@ try {
       else list.push(r);
     }
   })(installed);
-  for (const f of ["index.mjs", "lib/bridge.mjs", "lib/sso.mjs", "lib/desktop.mjs", "LICENSE", "README.md"]) {
+  for (const f of ["index.mjs", "lib/bridge.mjs", "lib/sso.mjs", "lib/desktop.mjs", "LICENSE", "README.md", "icon.svg"]) {
     assert.ok(list.includes(f), `安装后缺文件: ${f}`);
   }
   assert.ok(!list.some((f) => f.includes("login.mjs")));
-  ok(`本地依赖文件清单：${list.length} 个文件（含 LICENSE / README，无 login.mjs）`);
+  // package.json 里的 magpie.icon（data URI）必须能解码回同一个 SVG
+  const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
+  const m = /^data:image\/svg\+xml;base64,(.+)$/.exec(pkgJson.magpie?.icon || "");
+  assert.ok(m, "package.json 缺 magpie.icon（data:image/svg+xml;base64,…）");
+  assert.equal(Buffer.from(m[1], "base64").toString("utf8"), fs.readFileSync(path.join(ROOT, "icon.svg"), "utf8"), "data URI 与 icon.svg 不一致");
+  ok(`本地依赖文件清单：${list.length} 个文件（含 LICENSE / README / icon.svg，无 login.mjs）`);
   await smoke(installed, "node_modules 本地依赖：npm i ./magpie-inkstone");
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
