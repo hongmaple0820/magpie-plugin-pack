@@ -1,0 +1,22 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # 每个插件都是零运行时依赖，测试只用到 node 与 npm，
+      # 因此无需 npm install，直接按 monorepo 脚本逐个插件跑 npm test。
+      - name: Run all plugin tests
+        run: npm test

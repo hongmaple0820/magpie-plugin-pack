@@ -1,0 +1,32 @@
+{
+  "name": "magpie-inkstone-auth",
+  "version": "0.1.0",
+  "description": "magpie / OpenCode provider plugin for 书生·端砚 (Discovery): 网页 SSO 登录、Orbit Agent 与 TokenPlan API 双通道、墨点用量、多账号故障切换",
+  "type": "module",
+  "main": "./index.mjs",
+  "files": [
+    "index.mjs",
+    "lib",
+    "test",
+    "README.md"
+  ],
+  "keywords": [
+    "opencode",
+    "opencode-plugin",
+    "magpie-plugin",
+    "inkstone",
+    "discovery"
+  ],
+  "license": "MIT",
+  "magpie": {
+    "name": "书生·端砚",
+    "maxConcurrency": 4,
+    "summary": {
+      "en": "Shusheng Inkstone (Discovery): Orbit Agent and TokenPlan API in one provider, with credits usage.",
+      "zh": "书生·端砚云端模型：Orbit Agent 与 TokenPlan API 合并成一个供应商，含墨点用量与故障切换。"
+    }
+  },
+  "scripts": {
+    "test": "node test/bridge.test.mjs && node test/integration.test.mjs && node test/desktop.test.mjs && node test/install.test.mjs"
+  }
+}

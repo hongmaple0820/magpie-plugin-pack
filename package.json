@@ -1,0 +1,13 @@
+{
+  "name": "magpie-plugin-pack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A collection of magpie / OpenCode provider plugins. Each plugin under plugins/ is published to npm independently.",
+  "license": "MIT",
+  "workspaces": [
+    "plugins/*"
+  ],
+  "scripts": {
+    "test": "node scripts/test-all.mjs"
+  }
+}
