@@ -683,7 +683,7 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 3. agnes 的图像/视频（drawer 表面）未实现，README 已写明。
 4. npm 逐包发布 + 社区 registry PR 属收尾 B（按 D4 决策推迟）。
 
-### 合并为单包 magpie-web-auth-pack（2026-11-09，用户要求：插件太多，安装麻烦）
+### 合并为单包 magpie-nest（2026-11-09，用户要求：插件太多，安装麻烦）
 
 **动机**：15+1 个独立插件对用户是 16 次 `plugin add`、16 行插件页、16 份 npm 发布。
 
@@ -694,3 +694,15 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 2. inkstone 的 `install.test.mjs` 断言「入口恰好导出 1 个插件函数」——合订包 16 个直接红。改写为 `pack-install.test.mjs`：入口恰好 16 个**具名**插件函数（多=辅助泄漏，少=渠道丢失）、`files` 白名单复制到临时 node_modules 后整包可装载（含 wasm 资产）、`magpie.icon` data URI 与 icon.svg 一致。
 
 **终态**：合订包 164/164 单测全绿；magpie 侧 16 个旧目录插件已 `plugin rm`、合订包一行装载；归属不变（inkstone=自有代码继续服务、登录 hong 完好；deepseek-web=volcanicll；chatgpt-web=guanwenpeng2001-bot）。git 检查点 `d6fef71` 保留了合并前的 16 插件形态。
+
+### 更名 + 品牌：鹊巢 magpie-nest（2026-11-09 晚，用户反馈：名字不合意、缺 logo 和说明）
+
+**名字**：magpie-web-auth-pack → **鹊巢 magpie-nest**。两次 ask_user_question 均超时未答，按推荐候选执行并记录为假设——换名成本 = 目录 + package.json + 一轮 sed，一条命令的事。语义：喜鹊爱收集亮闪闪的小物回巢，magpie 收集 16 家渠道共栖一巢，与宿主品牌同源。
+
+**logo**（三处同源：仓库根 logo.svg = plugins/magpie-nest/icon.svg = package.json 的 magpie.icon data URI，pack-install 测试强制一致）：暮色圆角底 + 星子；黑头白身喜鹊、琥珀眼喙、青绿长尾挑向左上；褐色编织巢 + 三颗宝石（琥珀/青/粉，代表 16 渠道）；喙尖衔一颗星。**三版浏览器实渲染迭代**：v2 鸟读不出（白腹像云、头是孤立圆点）；v3 尾和头都在右上，尾被看成头顶冠羽；v4 尾改挑左上，读出「喜鹊 + 长尾 + 巢 + 三宝石 + 衔星」定稿。
+
+**identity**：magpie.name「鹊巢」、中英 summary/description/keywords；根 README（中英）加 banner（logo + 品牌题 + CI 徽章）；16 个 lib/<id>/README 的旧独立包名与安装路径全部改为合订包形态（含 inkstone 的注册表示例、沙箱冒烟脚本、目录树图）。
+
+**magpie 侧**：旧路径条目 rm → 新路径 add；inkstone 登录态（hong）无损迁移；deepseek-web/chatgpt-web 归属不变。
+
+**待用户手动**（本机无 gh CLI）：GitHub 仓库 Description + Topics，文案见交付说明。

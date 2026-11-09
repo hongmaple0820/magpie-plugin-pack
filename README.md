@@ -1,12 +1,18 @@
-# magpie-plugin-pack
+<p align="center"><img src="logo.svg" width="128" alt="鹊巢 logo"/></p>
 
-**一个合订包，16 家网页版 AI 渠道**。`magpie-web-auth-pack` 是一个标准的 OpenCode v1 插件包（`config` / `auth` / `provider`），入口导出 16 个插件函数，宿主把每个函数当独立插件运行——**一次安装，16 个渠道各自登录、互不影响**。多账号、故障切换、额度展示、自动更新都由 magpie 负责。
+<h1 align="center">鹊巢 · magpie-nest</h1>
+
+<p align="center">一个包，16 家网页版 AI 渠道——一次安装，各自登录</p>
+
+<p align="center"><a href="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml"><img src="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml/badge.svg" alt="tests"/></a></p>
+
+本仓库（magpie-plugin-pack）发布一个合订包 **`magpie-nest`**：标准的 OpenCode v1 插件包（`config` / `auth` / `provider`），入口导出 16 个插件函数，宿主把每个函数当独立插件运行——**一次安装，16 个渠道各自登录、互不影响**。多账号、故障切换、额度展示、自动更新都由 magpie 负责。
 
 > English: see [README.en.md](./README.en.md)。
 
 ## 包含的渠道
 
-全部位于 [plugins/magpie-web-auth-pack](./plugins/magpie-web-auth-pack)。渠道代码在 `lib/<id>/`，协议细节与登录字段见各 `lib/<id>/README.md`。
+全部位于 [plugins/magpie-nest](./plugins/magpie-nest)。渠道代码在 `lib/<id>/`，协议细节与登录字段见各 `lib/<id>/README.md`。
 
 | 供应商 id | 渠道 | 登录方式 |
 | --- | --- | --- |
@@ -33,7 +39,7 @@
 
 ```powershell
 git clone https://github.com/hongmaple0820/magpie-plugin-pack.git
-magpie plugin add "F:\路径\magpie-plugin-pack\plugins\magpie-web-auth-pack"
+magpie plugin add "F:\路径\magpie-plugin-pack\plugins\magpie-nest"
 ```
 
 - 或在 magpie 应用里：插件 → 添加插件 → 填上面的文件夹路径。
@@ -52,7 +58,7 @@ magpie quota                     # 看墨点余额与 5h/7d 窗口
 magpie plugin                    # 看插件 / 账号 / 模型列表
 ```
 
-其它渠道见 `plugins/magpie-web-auth-pack/lib/<id>/README.md`。
+其它渠道见 `plugins/magpie-nest/lib/<id>/README.md`。
 
 ## 更新
 
@@ -89,7 +95,7 @@ magpie-plugin-pack/
 ├── scripts/test-all.mjs          # 跑全部测试
 ├── .github/workflows/test.yml    # CI：push/PR 双平台测试
 └── plugins/
-    └── magpie-web-auth-pack/     # 唯一的包：16 渠道合订
+    └── magpie-nest/     # 唯一的包：16 渠道合订
         ├── index.mjs             # 只导出 16 个插件函数（宿主各跑各的）
         ├── lib/<id>/             # 各渠道协议实现 + README（inkstone 在 lib/inkstone/）
         ├── assets/               # deepseek-web 的 sha3 wasm
@@ -108,7 +114,7 @@ magpie-plugin-pack/
 单包发布：
 
 ```bash
-cd plugins/magpie-web-auth-pack
+cd plugins/magpie-nest
 npm login --auth-type=web --registry=https://registry.npmjs.org/
 npm pack --dry-run
 npm publish --tag beta
@@ -117,7 +123,7 @@ npm publish --tag beta
 发布后用户直接：
 
 ```
-magpie plugin add magpie-web-auth-pack
+magpie plugin add magpie-nest
 ```
 
 想进 magpie 社区推荐列表，给 `magpie-community/plugins` 的 `registry.json` 提 PR（详见 magpie 文档「发布与上架」）。

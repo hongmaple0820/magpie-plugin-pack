@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="magpie-nest logo">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#243353"/>
+      <stop offset="1" stop-color="#0d1420"/>
+    </linearGradient>
+    <linearGradient id="nest" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#9a6a33"/>
+      <stop offset="1" stop-color="#5c3a16"/>
+    </linearGradient>
+    <linearGradient id="tail" x1="1" x2="0" y1="1" y2="0">
+      <stop offset="0" stop-color="#12404b"/>
+      <stop offset=".55" stop-color="#1f7288"/>
+      <stop offset="1" stop-color="#46cbe2"/>
+    </linearGradient>
+    <linearGradient id="gem1" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffd98a"/>
+      <stop offset="1" stop-color="#f59f1b"/>
+    </linearGradient>
+    <linearGradient id="gem2" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#8ceaf7"/>
+      <stop offset="1" stop-color="#1e9fbe"/>
+    </linearGradient>
+    <linearGradient id="gem3" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#ffafd0"/>
+      <stop offset="1" stop-color="#e9558c"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+      <stop offset="0" stop-color="#bfeaff" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#bfeaff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="128" height="128" rx="30" fill="url(#sky)"/>
+
+  <!-- 远处星子（避开左上尾带） -->
+  <circle cx="58" cy="10" r="1.4" fill="#cfe2ff" opacity=".8"/>
+  <circle cx="70" cy="6" r="1" fill="#cfe2ff" opacity=".5"/>
+  <circle cx="12" cy="22" r="1.1" fill="#cfe2ff" opacity=".5"/>
+  <circle cx="8" cy="60" r="1.2" fill="#cfe2ff" opacity=".55"/>
+
+  <!-- 长尾：一片青羽从身后挑向左上 -->
+  <path d="M68 76 C56 62 46 48 38 36 C33 29 30 24 26 19 C33 23 38 29 44 37 C52 49 60 60 72 70 Z" fill="url(#tail)"/>
+  <path d="M64 72 C54 60 45 48 38 38 C45 49 55 62 68 74 Z" fill="#7fd8ea" opacity=".3"/>
+
+  <!-- 喜鹊身子：白羽正对观者 -->
+  <ellipse cx="74" cy="66" rx="17" ry="14" fill="#f2f5f7"/>
+
+  <!-- 黑翅盖在左肩 -->
+  <path d="M56 59 Q68 51 83 57 Q76 67 63 68 Q55 65 56 59 Z" fill="#20242c"/>
+
+  <!-- 头 + 白枕 -->
+  <circle cx="88" cy="50" r="12" fill="#20242c"/>
+  <path d="M79 44 Q83 40 88 41 Q84 43 81 47 Z" fill="#f2f5f7" opacity=".85"/>
+
+  <!-- 眼 / 喙 -->
+  <circle cx="92" cy="48" r="2.2" fill="#ffc44d"/>
+  <circle cx="92.8" cy="47.2" r=".75" fill="#fff" opacity=".95"/>
+  <path d="M99 48 L110 51.5 L99 55 Z" fill="#ffc44d"/>
+
+  <!-- 站在巢沿的腿 -->
+  <path d="M72 79 L74 88 M82 78 L84 86" stroke="#3d2610" stroke-width="2.8" stroke-linecap="round"/>
+
+  <!-- 巢：碗 -->
+  <path d="M20 90 Q64 82 108 90 Q104 112 64 116 Q24 112 20 90 Z" fill="url(#nest)"/>
+
+  <!-- 巢中宝石（16 渠道） -->
+  <ellipse cx="40" cy="88" rx="8" ry="7" fill="url(#gem1)"/>
+  <ellipse cx="62" cy="92" rx="9.5" ry="7.5" fill="url(#gem2)"/>
+  <ellipse cx="84" cy="87.5" rx="7" ry="6.5" fill="url(#gem3)"/>
+  <circle cx="37" cy="85" r="1.8" fill="#fff" opacity=".92"/>
+  <circle cx="58.5" cy="88.5" r="2.1" fill="#fff" opacity=".92"/>
+  <circle cx="81.5" cy="84.5" r="1.6" fill="#fff" opacity=".92"/>
+
+  <!-- 巢的编织纹理（压过宝石下半，营造窝感） -->
+  <path d="M26 93 Q64 88 102 93" stroke="#3d2610" stroke-width="2.4" fill="none" opacity=".6"/>
+  <path d="M27 99 Q64 95 101 99" stroke="#3d2610" stroke-width="2.4" fill="none" opacity=".5"/>
+  <path d="M31 105 Q64 102 97 105" stroke="#3d2610" stroke-width="2.4" fill="none" opacity=".4"/>
+  <path d="M44 87 Q48 100 44 111" stroke="#3d2610" stroke-width="1.7" fill="none" opacity=".35"/>
+  <path d="M62 86 Q63 100 63 114" stroke="#3d2610" stroke-width="1.7" fill="none" opacity=".35"/>
+  <path d="M80 86 Q77 100 81 111" stroke="#3d2610" stroke-width="1.7" fill="none" opacity=".35"/>
+
+  <!-- 喙尖衔来的星 -->
+  <circle cx="118" cy="48" r="7" fill="url(#glow)"/>
+  <path d="M118 42.5 l1.5 3 3.2 1.5 -3.2 1.5 -1.5 3 -1.5 -3 -3.2 -1.5 3.2 -1.5 Z" fill="#e8f7ff"/>
+</svg>

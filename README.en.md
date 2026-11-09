@@ -1,12 +1,18 @@
-# magpie-plugin-pack
+<p align="center"><img src="logo.svg" width="128" alt="magpie-nest logo"/></p>
 
-**One package, sixteen web-session AI channels.** `magpie-web-auth-pack` is a standard OpenCode v1 plugin package (`config` / `auth` / `provider`); its entry exports sixteen plugin functions and the host runs each as its own plugin — **one install, sixteen independently signed-in providers**. Multi-account, failover, quota display and auto-update are handled by magpie.
+<h1 align="center">Magpie Nest · magpie-nest</h1>
+
+<p align="center">One package, sixteen web-session AI channels — one install, sign in per channel</p>
+
+<p align="center"><a href="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml"><img src="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml/badge.svg" alt="tests"/></a></p>
+
+This repo (magpie-plugin-pack) publishes a single omnibus package, **`magpie-nest`**: a standard OpenCode v1 plugin package (`config` / `auth` / `provider`) whose entry exports sixteen plugin functions, each run by the host as its own plugin — **one install, sixteen independently signed-in providers**. Multi-account, failover, quota display and auto-update are handled by magpie.
 
 > 中文说明见 [README.md](./README.md)。
 
 ## Channels
 
-Everything lives in [plugins/magpie-web-auth-pack](./plugins/magpie-web-auth-pack). Each channel's code is in `lib/<id>/` with its own README.
+Everything lives in [plugins/magpie-nest](./plugins/magpie-nest). Each channel's code is in `lib/<id>/` with its own README.
 
 | Provider id | Channel | Sign-in |
 | --- | --- | --- |
@@ -33,7 +39,7 @@ Everything lives in [plugins/magpie-web-auth-pack](./plugins/magpie-web-auth-pac
 
 ```powershell
 git clone https://github.com/hongmaple0820/magpie-plugin-pack.git
-magpie plugin add "F:\path\to\magpie-plugin-pack\plugins\magpie-web-auth-pack"
+magpie plugin add "F:\path\to\magpie-plugin-pack\plugins\magpie-nest"
 ```
 
 - Or in the magpie app: Plugins → Add plugin → paste the folder path.
@@ -51,7 +57,7 @@ magpie provider test inkstone
 magpie quota
 ```
 
-Other channels: see `plugins/magpie-web-auth-pack/lib/<id>/README.md`.
+Other channels: see `plugins/magpie-nest/lib/<id>/README.md`.
 
 ## Update
 
@@ -87,7 +93,7 @@ magpie-plugin-pack/
 ├── scripts/test-all.mjs
 ├── .github/workflows/test.yml
 └── plugins/
-    └── magpie-web-auth-pack/     # the one package: 16 channels
+    └── magpie-nest/     # the one package: 16 channels
         ├── index.mjs             # exports the 16 plugin functions, nothing else
         ├── lib/<id>/             # per-channel protocol code + README
         ├── assets/               # deepseek-web sha3 wasm
@@ -104,10 +110,10 @@ Rules:
 ## Publishing (later)
 
 ```bash
-cd plugins/magpie-web-auth-pack
+cd plugins/magpie-nest
 npm publish --tag beta
 ```
 
-Then users install with `magpie plugin add magpie-web-auth-pack`. A PR to `magpie-community/plugins`'s `registry.json` lists it in the community index.
+Then users install with `magpie plugin add magpie-nest`. A PR to `magpie-community/plugins`'s `registry.json` lists it in the community index.
 
 ## License
