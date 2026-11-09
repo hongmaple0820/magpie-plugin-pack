@@ -1,0 +1,21 @@
+{
+  "name": "magpie-zai-auth",
+  "version": "0.1.0",
+  "description": "Z.ai (chat.z.ai) for magpie: a web sign-in token over an OpenAI-compatible endpoint",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "lib", "test", "README.md", "README.en.md", "icon.svg"],
+  "keywords": ["magpie", "magpie-plugin", "opencode", "opencode-plugin", "zai", "glm", "provider"],
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "magpie": {
+    "name": "Z.ai (网页版)",
+    "maxConcurrency": 3,
+    "summary": {
+      "en": "Z.ai: a web sign-in over an OpenAI-compatible endpoint, serving GLM-5.3 down to GLM-5.",
+      "zh": "Z.ai：网页登录令牌直连 OpenAI 兼容端点，提供 GLM-5.3 至 GLM-5。"
+    }
+  }
+}

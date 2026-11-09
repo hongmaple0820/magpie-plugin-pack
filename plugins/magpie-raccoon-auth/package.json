@@ -1,0 +1,21 @@
+{
+  "name": "magpie-raccoon-auth",
+  "version": "0.1.0",
+  "description": "Raccoon Work (SenseTime) for magpie: an OpenAI-compatible endpoint behind a web access token",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "lib", "test", "README.md", "icon.svg"],
+  "keywords": ["magpie", "magpie-plugin", "opencode", "opencode-plugin", "raccoon", "sensenova", "provider"],
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "magpie": {
+    "name": "Raccoon Work",
+    "maxConcurrency": 2,
+    "summary": {
+      "en": "SenseTime Raccoon Work: an OpenAI-compatible endpoint with six models behind a web access token.",
+      "zh": "商汤 Raccoon Work：OpenAI 兼容端点，6 个模型，网页访问令牌鉴权。"
+    }
+  }
+}

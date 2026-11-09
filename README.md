@@ -9,6 +9,21 @@
 | 插件 | 供应商 id | 说明 | 登录方式 | 目录 |
 | --- | --- | --- | --- | --- |
 | magpie-inkstone-auth | `inkstone` | 书生·端砚（Discovery）云端模型：Orbit Agent + TokenPlan API 双通道、墨点用量 | Windows 本机端砚客户端一键导入（无需浏览器、无需任何输入），或网页 SSO | [plugins/magpie-inkstone-auth](./plugins/magpie-inkstone-auth) |
+| magpie-lobsterai-auth | `lobsterai` | 有道 LobsterAI：18 个模型（DeepSeek V4 / Kimi K2.x / Qwen3.x / MiniMax M3 / Doubao Seed 2.x / GLM-5.x）、SSE-only 端点聚合、每日签到带积分 | 浏览器登录 + 粘贴回跳地址（可选手动粘 token） | [plugins/magpie-lobsterai-auth](./plugins/magpie-lobsterai-auth) |
+| magpie-zai-auth | `zai-web` | Z.ai 网页版：GLM-5.3 / 5.2 / 5.1 / 5，OpenAI 兼容端点直通 | 粘贴网页令牌（eyJ…） | [plugins/magpie-zai-auth](./plugins/magpie-zai-auth) |
+| magpie-opencode-free-auth | `opencode-free` | OpenCode 免密免费通道：9 个匿名池模型，无需账号与密钥 | 一键启用（无输入） | [plugins/magpie-opencode-free-auth](./plugins/magpie-opencode-free-auth) |
+| magpie-glm-auth | `glm` | 智谱清言网页版：GLM-5.3 / 5.2 / 5，签名请求 + 累积式分片流 | 粘贴 `chatglm_refresh_token` | [plugins/magpie-glm-auth](./plugins/magpie-glm-auth) |
+| magpie-qwen-ai-auth | `qwen-ai` | Qwen AI 网页版（chat.qwen.ai）：10 个模型，先建会话再发消息的协议 | 粘贴网页令牌 | [plugins/magpie-qwen-ai-auth](./plugins/magpie-qwen-ai-auth) |
+| magpie-perplexity-auth | `perplexity` | Perplexity 网页版：11 个模型（auto/sonar/pplx_pro/GPT-5.4/Claude/Gemini/Grok），SSE 差分补丁流 | 粘贴会话 Cookie | [plugins/magpie-perplexity-auth](./plugins/magpie-perplexity-auth) |
+| magpie-kimi-auth | `kimi-web` | Kimi 网页版：K3 / K2.7-Code / K2.6 / K2.5，gRPC-Web 帧封装 | 粘贴访问令牌 | [plugins/magpie-kimi-auth](./plugins/magpie-kimi-auth) |
+| magpie-qwen-auth | `qwen-web` | 通义千问网页版：9 个 Qwen3 模型，SSE 回合与思考分片 | 粘贴 `tongyi_sso_ticket` | [plugins/magpie-qwen-auth](./plugins/magpie-qwen-auth) |
+| magpie-doubao-auth | `doubao` | 豆包网页版：samantha 补全流与编号事件协议 | 粘贴 `sessionid` | [plugins/magpie-doubao-auth](./plugins/magpie-doubao-auth) |
+| magpie-loomy-auth | `loomy` | 讯飞 Loomy：8 个模型，OpenAI 兼容直通，模型名带计费倍率 | 粘贴会话令牌 | [plugins/magpie-loomy-auth](./plugins/magpie-loomy-auth) |
+| magpie-gemini-auth | `gemini-code-assist` | Gemini Code Assist：v1internal 信封 + antigravity 客户端身份，4 个 tier | 粘贴整份 Google 凭据 JSON | [plugins/magpie-gemini-auth](./plugins/magpie-gemini-auth) |
+| magpie-raccoon-auth | `raccoon` | 商汤 Raccoon Work：6 个模型，OpenAI 兼容 + 组织码 | 粘贴网页访问令牌 | [plugins/magpie-raccoon-auth](./plugins/magpie-raccoon-auth) |
+| magpie-agnes-auth | `agnes` | Agnes AI 文本模型（图像/视频未实现） | 粘贴 API Key | [plugins/magpie-agnes-auth](./plugins/magpie-agnes-auth) |
+| magpie-deepseek-web-auth | `deepseek-web` | DeepSeek 网页版：sha3 PoW（wasm 随包）+ 每轮会话 + 补丁流投影 | 粘贴 token 或凭据 JSON | [plugins/magpie-deepseek-web-auth](./plugins/magpie-deepseek-web-auth) |
+| magpie-chatgpt-web-auth | `chatgpt-web` | ChatGPT 网页版（**实验性**）：sentinel 握手 + 本地 PoW/turnstile + 补丁流；可能被 TLS 指纹拦截 | 粘贴 access token 或凭据 JSON | [plugins/magpie-chatgpt-web-auth](./plugins/magpie-chatgpt-web-auth) |
 
 > 后续新插件都放进 `plugins/<name>/`，并补一行到上表。
 

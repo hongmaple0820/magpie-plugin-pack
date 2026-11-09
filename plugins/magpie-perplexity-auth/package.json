@@ -1,0 +1,21 @@
+{
+  "name": "magpie-perplexity-auth",
+  "version": "0.1.0",
+  "description": "Perplexity (www.perplexity.ai) web session for magpie: one question per turn over SSE diff patches",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "lib", "test", "README.md", "icon.svg"],
+  "keywords": ["magpie", "magpie-plugin", "opencode", "opencode-plugin", "perplexity", "provider"],
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "magpie": {
+    "name": "Perplexity 网页版",
+    "maxConcurrency": 1,
+    "summary": {
+      "en": "Perplexity's web app: a session cookie over its SSE diff-patch answer stream, with auto, sonar, pplx_pro and the hosted models.",
+      "zh": "Perplexity 网页版：会话 Cookie 走 SSE 差分补丁流，提供 auto / sonar / pplx_pro 及托管模型。"
+    }
+  }
+}

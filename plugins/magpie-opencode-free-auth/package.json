@@ -1,0 +1,21 @@
+{
+  "name": "magpie-opencode-free-auth",
+  "version": "0.1.0",
+  "description": "OpenCode's keyless free lane for magpie: no account, no key, the anonymous pooled tier",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "lib", "test", "README.md", "README.en.md", "icon.svg"],
+  "keywords": ["magpie", "magpie-plugin", "opencode", "opencode-plugin", "free", "provider"],
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "magpie": {
+    "name": "OpenCode Free",
+    "maxConcurrency": 2,
+    "summary": {
+      "en": "OpenCode's keyless lane: no account and no key, the anonymous pooled tier with nine chat models.",
+      "zh": "OpenCode 免密免费通道：无需账号与密钥，走公开匿名池，提供 9 个对话模型。"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "magpie-gemini-auth",
+  "version": "0.1.0",
+  "description": "Gemini Code Assist for magpie: the v1internal envelope, the antigravity client identity and hourly token renewal",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "lib", "test", "README.md", "icon.svg"],
+  "keywords": ["magpie", "magpie-plugin", "opencode", "opencode-plugin", "gemini", "google", "provider"],
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "magpie": {
+    "name": "Gemini Code Assist",
+    "maxConcurrency": 2,
+    "summary": {
+      "en": "Gemini Code Assist: the v1internal envelope with the antigravity client identity, and hourly token renewal from a refresh token.",
+      "zh": "Gemini Code Assist：v1internal 信封 + antigravity 客户端身份，凭 refresh token 每小时自动续期。"
+    }
+  }
+}

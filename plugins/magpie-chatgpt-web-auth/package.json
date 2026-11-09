@@ -1,0 +1,21 @@
+{
+  "name": "magpie-chatgpt-web-auth",
+  "version": "0.1.0",
+  "description": "ChatGPT web app for magpie: sentinel handshake, local proof of work and turnstile, patch-stream projection. Experimental.",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": { ".": "./index.mjs", "./server": "./index.mjs" },
+  "files": ["index.mjs", "lib", "test", "README.md", "icon.svg"],
+  "keywords": ["magpie", "magpie-plugin", "opencode", "opencode-plugin", "chatgpt", "openai", "provider"],
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "magpie": {
+    "name": "ChatGPT 网页版",
+    "maxConcurrency": 1,
+    "summary": {
+      "en": "Experimental: ChatGPT's web app with its sentinel handshake, local proof of work and turnstile. The upstream may refuse non-browser TLS fingerprints.",
+      "zh": "实验性：ChatGPT 网页版，含 sentinel 握手、本地工作量证明与 turnstile。上游可能按 TLS 指纹拒绝非浏览器客户端。"
+    }
+  }
+}
