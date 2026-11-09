@@ -1,0 +1,43 @@
+{
+  "name": "magpie-web-auth-pack",
+  "version": "0.1.0",
+  "description": "16 web-session AI channels for magpie / OpenCode in one install: inkstone, lobsterai, zai-web, opencode-free, glm, qwen-ai, qwen-web, kimi-web, doubao, loomy, gemini-code-assist, perplexity, raccoon, agnes, deepseek-web, chatgpt-web",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./server": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "lib",
+    "assets",
+    "test",
+    "README.md",
+    "icon.svg",
+    "LICENSE"
+  ],
+  "keywords": [
+    "magpie",
+    "magpie-plugin",
+    "opencode",
+    "opencode-plugin",
+    "provider",
+    "web-session"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "magpie": {
+    "name": "网页会话合订本",
+    "summary": {
+      "en": "16 web-session channels (inkstone, lobsterai, zai-web, opencode-free, glm, qwen-ai, qwen-web, kimi-web, doubao, loomy, gemini-code-assist, perplexity, raccoon, agnes, deepseek-web, chatgpt-web) in one package. Each installs as its own plugin with its own sign-in.",
+      "zh": "16 家网页渠道合订为一个包：inkstone、lobsterai、zai-web、opencode-free、glm、qwen-ai、qwen-web、kimi-web、豆包、loomy、gemini-code-assist、perplexity、raccoon、agnes、deepseek-web、chatgpt-web。一次安装，各自登录。"
+    },
+    "icon": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiB3aWR0aD0iMTI4IiBoZWlnaHQ9IjEyOCI+CiAgPGRlZnM+CiAgICA8bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCIgeTE9IjAiIHgyPSIwIiB5Mj0iMSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCIgc3RvcC1jb2xvcj0iI2M4NDEyZiIvPgogICAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3ZDFmMTQiLz4KICAgIDwvbGluZWFyR3JhZGllbnQ+CiAgPC9kZWZzPgogIDxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiByeD0iMjgiIGZpbGw9InVybCgjYmcpIi8+CiAgPGcgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZlNGQ2IiBzdHJva2Utd2lkdGg9IjYiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCI+CiAgICA8cGF0aCBkPSJNNjQgMzRjLTkgMC0xNiA3LTE2IDE2djE0YzAgOSA3IDE2IDE2IDE2czE2LTcgMTYtMTZWNTBjMC05LTctMTYtMTYtMTZ6Ii8+CiAgICA8cGF0aCBkPSJNNDggNTZjLTggMC0xMyA1LTEzIDEyIi8+CiAgICA8cGF0aCBkPSJNODAgNTZjOCAwIDEzIDUgMTMgMTIiLz4KICAgIDxwYXRoIGQ9Ik02NCA4MHYxMCIvPgogICAgPHBhdGggZD0iTTUwIDkybC04IDgiLz4KICAgIDxwYXRoIGQ9Ik03OCA5Mmw4IDgiLz4KICA8L2c+CiAgPGNpcmNsZSBjeD0iNTgiIGN5PSI1MCIgcj0iMyIgZmlsbD0iI2ZmZTRkNiIvPgogIDxjaXJjbGUgY3g9IjcwIiBjeT0iNTAiIHI9IjMiIGZpbGw9IiNmZmU0ZDYiLz4KPC9zdmc+Cg=="
+  }
+}

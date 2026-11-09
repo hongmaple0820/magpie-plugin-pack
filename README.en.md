@@ -1,130 +1,113 @@
 # magpie-plugin-pack
 
-A collection of **magpie / OpenCode provider plugins**. Every plugin is a standard OpenCode v1 plugin (`config` / `auth` / `provider`) and works in magpie out of the box: multiple accounts, failover, quota display and auto-update are all handled by magpie.
+**One package, sixteen web-session AI channels.** `magpie-web-auth-pack` is a standard OpenCode v1 plugin package (`config` / `auth` / `provider`); its entry exports sixteen plugin functions and the host runs each as its own plugin — **one install, sixteen independently signed-in providers**. Multi-account, failover, quota display and auto-update are handled by magpie.
 
 > 中文说明见 [README.md](./README.md)。
 
-## Plugins
+## Channels
 
-| Plugin | Provider id | What it does | Sign-in | Folder |
-| --- | --- | --- | --- | --- |
-| magpie-inkstone-auth | `inkstone` | Shusheng Inkstone (Discovery) cloud models: Orbit Agent + TokenPlan API dual channel, credit usage | Windows: one-click import from the local Inkstone desktop client (no browser, nothing to type), or web SSO | [plugins/magpie-inkstone-auth](./plugins/magpie-inkstone-auth) |
+Everything lives in [plugins/magpie-web-auth-pack](./plugins/magpie-web-auth-pack). Each channel's code is in `lib/<id>/` with its own README.
 
-> New plugins go into `plugins/<name>/` and get a row in the table above.
+| Provider id | Channel | Sign-in |
+| --- | --- | --- |
+| `inkstone` | Shusheng Inkstone (Discovery): Orbit Agent + TokenPlan API, credit usage | Windows desktop client import (one click, no browser), or web SSO |
+| `lobsterai` | Youdao LobsterAI: 18 models, SSE-only endpoints, daily check-in | Browser login + paste redirect URL |
+| `zai-web` | Z.ai web: GLM-5.3 / 5.2 / 5.1 / 5, OpenAI-compatible passthrough | Paste web token (eyJ…) |
+| `opencode-free` | OpenCode free anonymous pool: 9 models, no account | One click, no input |
+| `glm` | Zhipu ChatGLM web: signed requests + cumulative shard stream | Paste `chatglm_refresh_token` |
+| `qwen-ai` | Qwen AI web (chat.qwen.ai): 10 models, session-then-message protocol | Paste web token |
+| `perplexity` | Perplexity web: 11 models, SSE differential patch stream | Paste session cookie |
+| `kimi-web` | Kimi web: K3 / K2.7-Code / K2.6 / K2.5, gRPC-Web framing | Paste access token |
+| `qwen-web` | Tongyi Qianwen web: 9 Qwen3 models | Paste `tongyi_sso_ticket` |
+| `doubao` | Doubao web: samantha completion stream | Paste `sessionid` |
+| `loomy` | iFlytek Loomy: 8 models, OpenAI-compatible | Paste session token |
+| `gemini-code-assist` | Gemini Code Assist: v1internal envelope, 4 tiers | Paste full Google credential JSON |
+| `raccoon` | SenseTime Raccoon Work: 6 models, OpenAI-compatible + org code | Paste web access token |
+| `agnes` | Agnes AI text models (image/video not implemented) | Paste API key |
+| `deepseek-web` | DeepSeek web: sha3 PoW (wasm bundled) + per-turn session + patch stream | Paste token or credential JSON |
+| `chatgpt-web` | ChatGPT web (**experimental**): sentinel handshake + local PoW/turnstile + patch stream; may be blocked by TLS fingerprinting | Paste access token or credential JSON |
 
-## Install all plugins in one shot
+> ⚠️ All channels are reverse-engineered web protocols, not official APIs: upstream changes can break them at any time, and accounts risk rate limits — don't use a primary account. When a channel id collides with an existing community plugin (`inkstone`/`deepseek-web`/`chatgpt-web`), pick the owner with `magpie plugin use`; this pack never steals a signed-in account.
 
-### Windows (PowerShell 5.1+)
+## Install (one command)
 
 ```powershell
 git clone https://github.com/hongmaple0820/magpie-plugin-pack.git
-cd magpie-plugin-pack
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1
+magpie plugin add "F:\path\to\magpie-plugin-pack\plugins\magpie-web-auth-pack"
 ```
 
-If `magpie` is not on PATH:
+- Or in the magpie app: Plugins → Add plugin → paste the folder path.
+- The repo's `install.ps1` / `install.sh` still work (they walk `plugins/*/`), and are safe to re-run.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\install.ps1 -Magpie "D:\Program Files\magpie-windows-amd64.exe"
-```
-
-### macOS / Linux
-
-```bash
-git clone https://github.com/hongmaple0820/magpie-plugin-pack.git
-cd magpie-plugin-pack
-./install.sh
-# custom magpie path: MAGPIE=/path/to/magpie ./install.sh
-```
-
-The script simply walks `plugins/*/package.json` and runs `magpie plugin add <absolute path>` for each one. Running it again is safe (magpie rejects entries that are already added).
-
-## Install a single plugin (manual)
-
-magpie loads a folder in place without installing anything, which is the most convenient option before publishing to npm:
-
-```powershell
-magpie plugin add "F:\path\to\magpie-plugin-pack\plugins\magpie-inkstone-auth"
-```
-
-Or in the magpie app: Plugins → Add plugin → paste that folder path.
-
-Then enable the plugin in Plugins → Installed and sign in.
+Channels you never sign in to simply sit there; they do not affect the others.
 
 ## Sign in
 
-For inkstone:
+Example:
 
 ```powershell
-magpie plugin login inkstone     # choose "Import from local Inkstone client" (Windows, no browser, nothing to type)
-magpie provider test inkstone    # send a tiny request for each API
-magpie quota                     # view credits and 5h/7d windows
-magpie plugin                    # list plugins / accounts / models
+magpie plugin login inkstone
+magpie provider test inkstone
+magpie quota
 ```
 
-See each plugin's own README for details.
+Other channels: see `plugins/magpie-web-auth-pack/lib/<id>/README.md`.
 
-## Updating
+## Update
 
-Before npm: updating means `git pull`.
+Before publishing to npm, updating = `git pull`:
 
 ```powershell
 cd magpie-plugin-pack
 git pull
 ```
 
-- CLI: nothing else needed — every command loads the folder's current contents.
-- App (GUI): toggle the plugin off and on in Plugins → Installed, or restart magpie.
+- Terminal CLI: nothing to do, every command loads the folder's current content.
+- magpie app: toggle the pack off and on in Plugins → Installed, or restart magpie.
 
-## Testing
+## Tests
 
-One command at the repo root runs every plugin's tests (cross-platform):
+One command at the repo root (cross-platform):
 
 ```bash
 npm test
-# equivalent to node scripts/test-all.mjs — walks plugins/*/package.json and runs each npm test
 ```
 
-GitHub Actions ([.github/workflows/test.yml](./.github/workflows/test.yml)) runs all plugin tests on **ubuntu + windows** on every push / PR. Plugins have zero runtime dependencies, so no `npm install` is needed.
+`test/pack-install.test.mjs` is the packaging regression: the entry exports exactly the sixteen plugin functions, and the `files` whitelist installs standalone (including the deepseek wasm asset).
+
+GitHub Actions runs the full suite on **ubuntu + windows** for every push / PR. Zero runtime dependencies, no `npm install` needed.
 
 ## Layout
 
 ```
 magpie-plugin-pack/
-├── README.md / README.en.md      # docs (this file)
+├── README.md / README.en.md
 ├── LICENSE                       # MIT
-├── install.ps1 / install.sh      # one-shot installer
-├── scripts/test-all.mjs          # cross-platform test runner
-├── .github/workflows/test.yml    # CI: push/PR tests on both platforms
+├── install.ps1 / install.sh
+├── scripts/test-all.mjs
+├── .github/workflows/test.yml
 └── plugins/
-    └── magpie-inkstone-auth/     # one folder per plugin, with its own package.json + README
+    └── magpie-web-auth-pack/     # the one package: 16 channels
+        ├── index.mjs             # exports the 16 plugin functions, nothing else
+        ├── lib/<id>/             # per-channel protocol code + README
+        ├── assets/               # deepseek-web sha3 wasm
+        ├── test/
+        └── package.json
 ```
 
-Conventions:
+Rules:
 
-- One plugin = one folder under `plugins/`, folder name = npm package name.
-- The entry is resolved like magpie does (`exports["./server"]` → `main` → `exports["."]` → `index.ts/.tsx/.js/.mjs/.cjs`).
-- The entry module exports only the plugin function; keep helpers in `lib/` or use `export default { id, server }`.
+- **The entry module exports plugin functions only**: the host executes every exported function as a plugin, so one stray helper export crashes at load. Helpers live in `lib/<id>/`.
+- Zero shared state between channels; a new channel = a new `lib/` dir + one export line + a test.
+- The former standalone-plugin layout was folded into this pack (still in git history).
 
-## Publishing (later, to npm)
-
-This is a monorepo; each `plugins/<name>/` is published independently:
+## Publishing (later)
 
 ```bash
-cd plugins/magpie-inkstone-auth
-npm login --auth-type=web --registry=https://registry.npmjs.org/
-npm pack --dry-run
+cd plugins/magpie-web-auth-pack
 npm publish --tag beta
 ```
 
-After publishing, users can simply:
-
-```
-magpie plugin add magpie-inkstone-auth
-```
-
-To appear in the magpie community list, open a PR to `magpie-community/plugins` `registry.json` (see magpie's "Publishing" docs).
+Then users install with `magpie plugin add magpie-web-auth-pack`. A PR to `magpie-community/plugins`'s `registry.json` lists it in the community index.
 
 ## License
-
-[MIT](./LICENSE)

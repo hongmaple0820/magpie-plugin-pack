@@ -682,3 +682,15 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 2. loomy 的签到未移植（低优先）。
 3. agnes 的图像/视频（drawer 表面）未实现，README 已写明。
 4. npm 逐包发布 + 社区 registry PR 属收尾 B（按 D4 决策推迟）。
+
+### 合并为单包 magpie-web-auth-pack（2026-11-09，用户要求：插件太多，安装麻烦）
+
+**动机**：15+1 个独立插件对用户是 16 次 `plugin add`、16 行插件页、16 份 npm 发布。
+
+**架构（qoder 同款）**：入口 `index.mjs` 导出 16 个插件函数（`InkstoneAuthPlugin`…`ZaiPlugin`），宿主把每个导出函数当**独立插件**运行——故障隔离、per-provider 登录、并发限制全部保留。各渠道代码原样收进 `lib/<id>/`（index.mjs + 原 lib/*.mjs 平铺），只改 import 路径；协议笔记随迁为 `lib/<id>/README.md`；deepseek 的 wasm 进包根 `assets/`。
+
+**两个踩坑**：
+1. bash 里 `"$NEW/test/$name__file"` 被解析成变量 `name__`（下划线属于变量名字符集）→ 前缀静默丢失，inkstone 与 lobsterai 的 `bridge.test.mjs` 同名相撞覆盖、测试少了一份。修复：`${name}-`。教训：**bash 拼文件名永远花括号**。
+2. inkstone 的 `install.test.mjs` 断言「入口恰好导出 1 个插件函数」——合订包 16 个直接红。改写为 `pack-install.test.mjs`：入口恰好 16 个**具名**插件函数（多=辅助泄漏，少=渠道丢失）、`files` 白名单复制到临时 node_modules 后整包可装载（含 wasm 资产）、`magpie.icon` data URI 与 icon.svg 一致。
+
+**终态**：合订包 164/164 单测全绿；magpie 侧 16 个旧目录插件已 `plugin rm`、合订包一行装载；归属不变（inkstone=自有代码继续服务、登录 hong 完好；deepseek-web=volcanicll；chatgpt-web=guanwenpeng2001-bot）。git 检查点 `d6fef71` 保留了合并前的 16 插件形态。
