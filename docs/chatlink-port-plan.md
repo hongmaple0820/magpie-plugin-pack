@@ -737,3 +737,36 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 **顺带修的既有问题**：`agnes` 的 429 —— 该账号 37 次请求里 34 次被上游 429（未实名账户 RPM 低），插件原样透传错误体，用户看到的就是「回答中断、很乱」。loader 加 429/503 退避重试（2s/3s/5s，ChatLink 对 z.ai 同款）。`qoder` 排队码 10605 同样按 `retryAfterSeconds` 自动重试（最多 2 次，单次封顶 60s）。
 
 **终态**：25 个 provider 全部装载，7 个新渠道用真实账号联网测通（qoder-cn ✓ / trae-cn ✓ / trae-global ✓ / workbuddy ✓ / workbuddy-ai ✓ / autoclaw ✓；qoder 国际版受上游排队限制，重试机制已就位）；164/164 单测全绿；git 检查点 `1ddbb51`。
+
+### 浏览器一键登录：8 个渠道逐一真机验证（2026-11-10）
+
+引擎 `lib/weblogin/`：拉起真实 Chrome/Edge（按渠道独立 profile）→ CDP 驱动 → cookie / localStorage / 请求头三路抓取。**没有一条规则是照抄就能用的**，8 条里有 5 条要改：
+
+| 渠道 | 规则 | 结果 |
+| --- | --- | --- |
+| zai-web | localStorage `token` | ✅ 3 秒 |
+| kimi | **localStorage `access_token`**（ChatLink 的 networkHeader 抓不到） | ✅ 3 秒，令牌直接对话成功 |
+| glm | cookie `chatglm_refresh_token`（原规则正确） | ✅ 5 秒 |
+| qwen-web | **实测出的新 cookie**（`tongyi_sso_ticket` 已失效；6 个候选里只有它能过网关，其余「签名错误 EX015」） | ✅ 5 秒 |
+| qwen-ai | **localStorage `qwen_access_token_state` 的 .token + 整套 cookie** | ✅ 5 秒 |
+| raccoon | **cookie `xhx_token`**（`sessionid` 不存在） | ✅ 4 秒，对话 200 |
+| doubao | cookie 集 + **指纹 query**（fp/msToken/a_bogus/…） | ⚠️ 见下 |
+| perplexity | cookie `next-auth.session-token`（未验证） | ⏸ 待用户完成 OAuth |
+
+**引擎级新能力**（后续渠道可复用）：
+- `extraCookies`：整套浏览器 cookie 随令牌落库（阿里 WAF 只认整套）
+- `extraQuery`：从真实 chat 请求 URL 抄下指纹参数
+- `triggerChat`：登录后自动导航到对话页、等输入框就绪、注入一条消息，逼出带指纹的请求（豆包登录耗时 244s → 10s）
+- `jsonField`：从 localStorage 的 JSON 值里取字段
+- `killProfileHolders`：启动前清理占着同一 profile 的旧 Chrome（同 profile 复用会把新实例变成空转发，调试端口永远不通——曾导致登录卡死 5 分钟）
+
+**修的引擎 bug**：`waitCdp` 的 `fetch` 原本没有自身超时，只靠循环末尾的 deadline 检查——fetch 一挂住就永远走不到那行，登录窗口无限等。现在每次探测带 `AbortSignal.timeout`，整个登录流程再加总闸。
+
+**豆包的边界（已查明，未完全打通）**：
+协议整体换代（`/samantha/` → `/chat/completion`，`2001/2003` → `STREAM_CHUNK`），已重写。用真机请求逐字段 diff 得出两个关键事实：
+1. 服务器按 `local_conversation_id` / `local_message_id` / `unique_key` **去重**——真机请求原样重放只回 0 chunk，换这三个 ID 后同 body 立即返回正文；
+2. 缺 `option.conversation_mode` 与 `option.aggregate_params`（含 mention_*/mode_id/agent_mode）。
+
+即使全部补齐，Node 直连仍被判 `710022004 rate limited`（subtype slide / semantic_reasoning，滑块与行为指纹）。新增 `lib/weblogin/pagefetch.mjs` 把请求放进真实页面发（真实 TLS 指纹与 JS 上下文），风控放行——非流式曾拿到真实回复「是」。但连续自动化测试会把账号打进风控冷却，需等待较长时间才恢复。
+
+**顺带修的既有问题**：inkstone 的 deepseek 系模型每请求限 6 张图（实测 7 张起稳定 400 `too many images`，glm-5.3 百图不限），上游报错不带数字、模型无法自愈。loader 现在按模型裁剪：保留最新 6 张，旧图换成占位文本。真机验证 100 图 + deepseek 从 400 变 200。

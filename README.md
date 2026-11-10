@@ -75,10 +75,27 @@ magpie plugin                    # 看插件 / 账号 / 模型列表
 
 覆盖：`zai-web`、`glm`、`qwen-web`、`qwen-ai`、`kimi-web`、`doubao`、`perplexity`、`raccoon`。每个渠道的「一键登录」都是登录方式里的**第一项**（GUI 默认选中），原来的粘贴方式依然保留作后备。
 
+已验证（2026-11-10，真实账号逐条跑通）：
+
+| 渠道 | 抓到的令牌 | 用时 |
+| --- | --- | --- |
+| `zai-web` | localStorage token | 3 秒 |
+| `kimi-web` | localStorage `access_token` | 3 秒（令牌直接对话成功） |
+| `glm` | cookie `chatglm_refresh_token` | 5 秒 |
+| `qwen-web` | cookie（实测得出，旧的 `tongyi_sso_ticket` 已失效） | 5 秒 |
+| `qwen-ai` | localStorage `qwen_access_token_state` + 整套 cookie | 5 秒 |
+| `raccoon` | cookie `xhx_token` + 整套 cookie | 4 秒（对话 200） |
+| `doubao` | cookie 集 + 指纹 query | 见下方说明 |
+| `perplexity` | cookie `next-auth.session-token` | 待验证 |
+
+> 每个渠道的令牌位置都不一样，规则全部是实测出来的，不是照搬。豆包另有风控（见下条）。
+
 - 零依赖：WebSocket 客户端、CDP 会话、浏览器启动都是手写的（`lib/weblogin/`）。
 - 4 分钟超时；失败时回退到粘贴令牌。
 - 配置目录在 `%LOCALAPPDATA%\magpie-nest-weblogin\<渠道>\`；换账号时删掉对应目录即可。
 - 找不到浏览器时可用 `MAGPIE_NEST_BROWSER` 指定可执行文件路径。
+
+**豆包的风控**：豆包的对话请求除了 cookie 与指纹，还会按「是不是真浏览器发的」做判定（返回 `710022004 rate limited`，subtype `slide` 或 `semantic_reasoning`）。插件因此把对话请求放进真实页面里发（`lib/weblogin/pagefetch.mjs`），需要保持浏览器可用。该机制下非流式对话可正常返回，但**连续自动化调用可能让账号进入风控冷却**，需要等较长时间恢复。日常使用不受影响；若提示 rate limited，先停用一段时间。
 
 其它渠道见 `plugins/magpie-nest/lib/<id>/README.md`。
 
