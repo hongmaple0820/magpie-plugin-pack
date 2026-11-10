@@ -29,7 +29,9 @@ export const WEB_LOGIN_CHANNELS = {
     provider: "qwen",
     loginUrl: "https://www.qianwen.com",
     targetDomains: ["qianwen.com"],
-    tokenSources: [{ type: "cookie", key: "tongyi_sso_ticket" }],
+    // 实测（2026-11-10）：ChatLink 时代的 tongyi_sso_ticket 已失效，现行令牌是这个
+    // cookie；其余同名长度的候选都被网关以「签名错误 EX015」拒绝。
+    tokenSources: [{ type: "cookie", key: "_qk_bx_um_v1" }],
     windowTitle: "Qwen 一键登录",
     timeoutMs: 240000,
   },

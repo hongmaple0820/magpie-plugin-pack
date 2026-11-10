@@ -7,7 +7,7 @@
 // url (the host runs callback in the background, no page to paste into),
 // same shape as inkstone's client import. The window is the whole UI.
 
-import { findBrowser, freePort, launchBrowser, killBrowser, profileDirFor, waitCdp } from "./browser.mjs";
+import { findBrowser, freePort, killProfileHolders, launchBrowser, killBrowser, profileDirFor, waitCdp } from "./browser.mjs";
 import { cdpWatch } from "./cdp.mjs";
 import { webLoginChannel } from "./channels.mjs";
 
@@ -57,9 +57,12 @@ async function runWebLogin(channelId, { signal } = {}) {
   const budgetMs = (channel.timeoutMs ?? 240000) + 30000;
   try {
     port = await freePort();
+    const profileDir = profileDirFor(channel.provider);
+    // 同一 profile 的旧实例会把新实例变成空转发，端口永远不通。
+    await killProfileHolders(profileDir);
     child = launchBrowser({
       exe,
-      profileDir: profileDirFor(channel.provider),
+      profileDir,
       port,
       startUrl: channel.loginUrl,
     });

@@ -50,6 +50,32 @@ export function freePort() {
   });
 }
 
+/**
+ * Chrome 对已占用的 --user-data-dir 是「转发给已有实例然后自己退出」：
+ * 新传的 --remote-debugging-port 会被无声忽略，表现为端口永远不通。
+ * 所以启动前先把占着这份 profile 的旧实例清掉。
+ */
+export async function killProfileHolders(profileDir) {
+  if (process.platform !== "win32") return;
+  const needle = profileDir.replace(/\\/g, "\\\\");
+  await new Promise((resolve) => {
+    const ps = spawn(
+      "powershell",
+      [
+        "-NoProfile",
+        "-Command",
+        `Get-CimInstance Win32_Process -Filter "Name like 'chrome%' or Name like 'msedge%'" | Where-Object { $_.CommandLine -match '${needle}' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`,
+      ],
+      { stdio: "ignore" },
+    );
+    const done = () => resolve();
+    ps.on("close", done);
+    ps.on("error", done);
+    setTimeout(done, 8000).unref?.();
+  });
+  await sleep(500);
+}
+
 export function launchBrowser({ exe, profileDir, port, startUrl, launchArgs = [] }) {
   fs.mkdirSync(profileDir, { recursive: true });
   const args = [

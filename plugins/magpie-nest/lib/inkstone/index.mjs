@@ -173,6 +173,41 @@ const methods = [
   },
 ];
 
+/**
+ * 每模型的图片数量上限（实测 2026-11-10，TokenPlan 网关）：deepseek 系 7 张起
+ * 稳定 400 "too many images"（6 张 200；glm-5.3 给 100 张都收）。上游只报
+ * invalid_media 不带数字，agent 无法自愈——这里按模型裁掉最旧的图。
+ */
+const IMAGE_CAPS = [["deepseek", 6]];
+
+function imageCapFor(model) {
+  const id = String(model ?? "").toLowerCase();
+  for (const [prefix, cap] of IMAGE_CAPS) if (id.startsWith(prefix)) return cap;
+  return 0; // 0 = 不限
+}
+
+/** 超出上限时把最旧的图片替换成文本占位，只保留最新的 cap 张。 */
+function trimImages(body, cap) {
+  if (!body || cap <= 0 || !Array.isArray(body.messages)) return false;
+  const imageParts = []; // 按消息顺序（旧→新）收集替换闭包
+  for (const message of body.messages) {
+    if (!Array.isArray(message?.content)) continue;
+    for (const part of message.content) {
+      if (part?.type === "image_url" && part?.image_url?.url) {
+        imageParts.push(() => {
+          part.type = "text";
+          part.text = "[较早的图片已省略：该模型每请求最多 6 张图]";
+          delete part.image_url;
+        });
+      }
+    }
+  }
+  const extra = imageParts.length - cap;
+  if (extra <= 0) return false;
+  for (const replace of imageParts.slice(0, extra)) replace();
+  return true;
+}
+
 /** TokenPlan API 通道：标准 Chat Completions，原样转发（只换鉴权头）。 */
 async function apiFetch(cred, init) {
   if (!cred.apiKey) {
@@ -186,8 +221,23 @@ async function apiFetch(cred, init) {
   for (const name of ["host", "content-length", "content-encoding", "connection", "transfer-encoding"]) {
     headers.delete(name);
   }
+  // 模型有图片上限时先裁剪：deepseek 系 400 invalid_media 不带数字，
+  // 裁掉旧图让这轮对话继续，而不是整轮失败（长会话里截图越积越多）。
+  let body = init?.body;
+  try {
+    if (typeof init?.body === "string") {
+      const parsed = JSON.parse(init.body);
+      if (trimImages(parsed, imageCapFor(parsed?.model))) {
+        body = JSON.stringify(parsed);
+      }
+    } else if (init?.body && typeof init.body === "object") {
+    }
+  } catch {
+    /* 非 JSON 体原样转发 */
+  }
   const response = await fetch(`${API_BASE}/chat/completions`, {
     ...init,
+    ...(body !== undefined && body !== init?.body ? { body } : {}),
     headers,
     signal: init?.signal,
     cache: "no-store",
