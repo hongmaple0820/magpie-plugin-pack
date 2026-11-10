@@ -48,7 +48,7 @@ const trimSlash = (v) => v.replace(/\/+$/, "");
  * 直接拿 api 当 chat 主机，上游会回一张 404 网页（实测 trae-global）。
  * 映射照社区 index.mjs:189-199 的 apiOf。
  */
-function chatBaseOf(api, region) {
+export function chatBaseOf(api, region) {
   const value = typeof api === "string" ? api.trim() : "";
   if (!value) return region.chatBase;
   let host = "";
