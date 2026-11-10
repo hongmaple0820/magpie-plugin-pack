@@ -52,6 +52,9 @@ async function runWebLogin(channelId, { signal } = {}) {
 
   let child = null;
   let port = null;
+  // 总闸：任何一步挂住都不能让宿主永远等下去（登录是 background callback，
+  // 没有宿主侧的时限兜底）。给抓取窗口留 30 秒启动余量。
+  const budgetMs = (channel.timeoutMs ?? 240000) + 30000;
   try {
     port = await freePort();
     child = launchBrowser({
@@ -60,8 +63,8 @@ async function runWebLogin(channelId, { signal } = {}) {
       port,
       startUrl: channel.loginUrl,
     });
-    await waitCdp(port, 20000);
-    const { token } = await cdpWatch({
+    await withDeadline(waitCdp(port, 20000), 25000, "browser: 浏览器没有在 25 秒内就绪");
+    const { token } = await withDeadline(cdpWatch({
       port,
       channelId,
       loginUrl: channel.loginUrl,
@@ -69,7 +72,7 @@ async function runWebLogin(channelId, { signal } = {}) {
       tokenSources: channel.tokenSources,
       timeoutMs: channel.timeoutMs ?? 240000,
       signal,
-    });
+    }), budgetMs, "browser login: " + channelId + " 登录超时（未检测到令牌）");
     return buildResult(token, channel);
   } catch (error) {
     const message = error?.timeout
@@ -79,6 +82,15 @@ async function runWebLogin(channelId, { signal } = {}) {
   } finally {
     if (child) await killBrowser(child);
   }
+}
+
+function withDeadline(promise, ms, message) {
+  let timer = null;
+  const guard = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error(message), { timeout: true })), ms);
+    timer.unref?.();
+  });
+  return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
 }
 
 function buildResult(token, channel) {

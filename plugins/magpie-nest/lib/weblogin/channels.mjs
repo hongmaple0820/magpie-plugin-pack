@@ -49,7 +49,11 @@ export const WEB_LOGIN_CHANNELS = {
     provider: "kimi",
     loginUrl: "https://www.kimi.com",
     targetDomains: ["kimi.com"],
+    // 实测（2026-11-10）：kimi 网页版把令牌写在 localStorage 的 access_token，
+    // 请求头里并没有 Bearer——ChatLink 的 networkHeader 规则在当前版本抓不到，
+    // 只盯着它会导致「登录成功但超时」。localStorage 放第一位。
     tokenSources: [
+      { type: "localStorage", key: "access_token" },
       { type: "networkHeader", key: "token", urlPattern: "*://*.kimi.com/*", extractPattern: "^Bearer\\s+(.+)$" },
     ],
     windowTitle: "Kimi 一键登录",

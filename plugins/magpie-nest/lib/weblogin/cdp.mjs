@@ -85,7 +85,10 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
 
   async function openTarget(port, url) {
     try {
-      const res = await fetch("http://127.0.0.1:" + port + "/json/new?" + encodeURIComponent(url), { method: "PUT" });
+      const res = await fetch("http://127.0.0.1:" + port + "/json/new?" + encodeURIComponent(url), {
+        method: "PUT",
+        signal: AbortSignal.timeout(5000),
+      });
       if (!res.ok) return null;
       return await res.json();
     } catch {

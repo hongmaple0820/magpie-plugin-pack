@@ -64,20 +64,30 @@ export function launchBrowser({ exe, profileDir, port, startUrl, launchArgs = []
   return spawn(exe, args, { stdio: "ignore" });
 }
 
+/**
+ * 每次探测都带自己的超时：只靠 deadline 检查是不够的——fetch 本身若挂住
+ * （Chrome 起了但 DevTools 端点不答），循环永远走不到那行检查。
+ */
 export async function waitCdp(port, timeoutMs = 15000) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
     try {
-      const res = await fetch("http://127.0.0.1:" + port + "/json/version");
+      const res = await fetch("http://127.0.0.1:" + port + "/json/version", {
+        signal: AbortSignal.timeout(Math.max(500, Math.min(2000, deadline - Date.now()))),
+      });
       if (res.ok) return await res.json();
     } catch {}
-    if (Date.now() > deadline) throw new Error("browser: CDP 端口 " + port + " 15 秒内没有响应");
+    if (Date.now() > deadline) {
+      throw new Error("browser: CDP 端口 " + port + " 在 " + Math.round(timeoutMs / 1000) + " 秒内没有响应");
+    }
     await sleep(200);
   }
 }
 
 export async function listTargets(port) {
-  const res = await fetch("http://127.0.0.1:" + port + "/json/list");
+  const res = await fetch("http://127.0.0.1:" + port + "/json/list", {
+    signal: AbortSignal.timeout(5000),
+  });
   if (!res.ok) throw new Error("browser: /json/list " + res.status);
   return await res.json();
 }
