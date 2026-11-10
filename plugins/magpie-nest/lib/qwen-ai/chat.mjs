@@ -4,14 +4,22 @@
 import { randomUUID } from "node:crypto";
 import { API_BASE, NEW_CHAT_PATH, clientHeaders } from "./constants.mjs";
 
-function authHeaders(token) {
-  return { ...clientHeaders(), Authorization: "Bearer " + token };
+function authHeaders(token, cookieJar) {
+  const out = {
+    ...clientHeaders(),
+    Authorization: "Bearer " + token,
+    // 裸 Bearer 会被阿里 WAF 拦成挑战页（实测 2026-11-10）：必须带整套浏览器
+    // cookie；ChatLink 同款 X-Request-Id 每请求一个 UUID。
+    "X-Request-Id": randomUUID(),
+  };
+  if (cookieJar) out.Cookie = cookieJar;
+  return out;
 }
 
-export async function createChat(token, model, fetcher = fetch, signal) {
+export async function createChat(token, model, fetcher = fetch, signal, cookieJar) {
   const response = await fetcher(API_BASE + NEW_CHAT_PATH, {
     method: "POST",
-    headers: authHeaders(token),
+    headers: authHeaders(token, cookieJar),
     body: JSON.stringify({
       title: "New Chat",
       models: [model],
@@ -98,10 +106,10 @@ export function messageBody({ chatId, model, content, thinking }) {
   };
 }
 
-export async function postMessage(token, body, fetcher = fetch, signal) {
+export async function postMessage(token, body, fetcher = fetch, signal, cookieJar) {
   return fetcher(API_BASE + "/api/v2/chat/completions?chat_id=" + encodeURIComponent(body.chat_id), {
     method: "POST",
-    headers: authHeaders(token),
+    headers: authHeaders(token, cookieJar),
     body: JSON.stringify(body),
     ...(signal ? { signal } : {}),
   });

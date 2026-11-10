@@ -39,11 +39,13 @@ export const WEB_LOGIN_CHANNELS = {
     provider: "qwen-ai",
     loginUrl: "https://chat.qwen.ai",
     targetDomains: ["qwen.ai", "chat.qwen.ai"],
+    // 实测（2026-11-10）：裸 Bearer 会被阿里 WAF 拦（返回挑战页）；令牌在
+    // localStorage 的 qwen_access_token_state（JSON 内 .token，281 字符），
+    // WAF 放行还要整套浏览器 cookie。主令牌抓 state，extraCookies 全抓。
     tokenSources: [
-      { type: "networkHeader", key: "token", urlPattern: "*://*.qwen.ai/*", extractPattern: "^Bearer\\s+(.+)$" },
-      { type: "localStorage", key: "token" },
-      { type: "cookie", key: "token" },
+      { type: "localStorage", key: "qwen_access_token_state", jsonField: "token" },
     ],
+    extraCookies: true,
     windowTitle: "Qwen AI 一键登录",
     timeoutMs: 240000,
   },

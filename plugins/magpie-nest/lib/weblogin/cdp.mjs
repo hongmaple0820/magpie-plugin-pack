@@ -11,7 +11,7 @@ import { wsConnect } from "./ws.mjs";
 
 const FULL_CHECK_THROTTLE_MS = 1500;
 
-export async function cdpWatch({ port, channelId, loginUrl, targetDomains, tokenSources, timeoutMs, signal }) {
+export async function cdpWatch({ port, channelId, loginUrl, targetDomains, tokenSources, timeoutMs, signal, extraCookies }) {
   const domainMatch = (url) => {
     if (!url) return false;
     let host;
@@ -156,6 +156,7 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
     const entries = [];
     try {
       const { cookies } = await send("Network.getCookies", { urls: [target.url] });
+      lastCookies = cookies ?? [];
       for (const c of cookies ?? []) {
         entries.push({ where: "cookie", key: c.name, value: c.value });
       }
@@ -181,27 +182,41 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
           if (source.type === "networkHeader") continue;
           if (source.key !== entry.key) continue;
           if ((source.type === "cookie") !== (entry.where === "cookie")) continue;
-          acceptToken(entry.value, source.type + " " + entry.key);
+          acceptToken(entry.value, source.type + " " + entry.key, source);
         }
       }
     } catch {}
   }
 
-  function acceptToken(rawValue, via) {
+  function acceptToken(rawValue, via, source) {
     if (tokenFound) return;
     let value = typeof rawValue === "string" ? rawValue.trim() : "";
     if (!value) return;
     if (value.startsWith("{")) {
-      // AppKit-wrapped values: {"value":"…","__version":"0"}
+      // AppKit-wrapped / 结构化值：{"value":"…","__version":"0"} 或声明了 jsonField
       try {
         const wrapped = JSON.parse(value);
-        if (typeof wrapped?.value === "string") value = wrapped.value.trim();
+        const field = source?.jsonField;
+        if (field && typeof wrapped?.[field] === "string") value = wrapped[field].trim();
+        else if (typeof wrapped?.value === "string") value = wrapped.value.trim();
       } catch {}
     }
     if (value.length < 16 || /^\d+$/.test(value)) return;
     tokenFound = value;
     tokenVia = via;
   }
+
+  // WAF cookie 集：有的网关（chat.qwen.ai 走阿里 WAF）只认浏览器整套 cookie，
+  // 裸 Bearer 会被挑战页拦下。登录时把它们收齐，随令牌一起落库。
+  function collectCookies() {
+    const out = [];
+    for (const c of lastCookies) {
+      const v = String(c.value ?? "");
+      if (v) out.push(c.name + "=" + v);
+    }
+    return out.join("; ");
+  }
+  let lastCookies = [];
 
   await guard(() => send("Network.enable"));
   await guard(() => send("DOMStorage.enable"));
@@ -238,7 +253,7 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
       timeout: true,
     });
   }
-  return { token: tokenFound, via: tokenVia, target };
+  return { token: tokenFound, via: tokenVia, target, ...(extraCookies ? { cookieJar: collectCookies() } : {}) };
 }
 
 function delay(ms) {

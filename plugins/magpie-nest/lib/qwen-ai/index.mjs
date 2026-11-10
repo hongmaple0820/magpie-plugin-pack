@@ -147,7 +147,8 @@ export const QwenAiPlugin = async () => ({
                 { status: 404 },
               );
             }
-            const token = tokenOf(await getAuth());
+            const auth = await getAuth();
+            const token = tokenOf(auth);
             if (!token) throw expired();
 
             const body = await request.json();
@@ -159,7 +160,8 @@ export const QwenAiPlugin = async () => ({
               throw Object.assign(new Error("qwen-ai: the request named no messages"), { status: 400 });
             }
 
-            const chatId = await createChat(token, model, fetch, request.signal);
+            const cookieJar = String(auth?.cookieJar ?? "").trim();
+            const chatId = await createChat(token, model, fetch, request.signal, cookieJar);
             const thinking = model.includes("think") || model.includes("r1");
             const message = messageBody({
               chatId,
@@ -167,7 +169,7 @@ export const QwenAiPlugin = async () => ({
               content: flatten(body.messages),
               thinking,
             });
-            const upstream = await postMessage(token, message, fetch, request.signal);
+            const upstream = await postMessage(token, message, fetch, request.signal, cookieJar);
 
             if (!upstream.ok) {
               const text = await upstream.text().catch(() => "");

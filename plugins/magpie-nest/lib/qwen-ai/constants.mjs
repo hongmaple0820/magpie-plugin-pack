@@ -31,7 +31,11 @@ export function clientHeaders() {
     "bx-v": BX_V,
     "bx-umidtoken": BX_UMIDTOKEN,
     "bx-ua": BX_UA,
-    Timezone: new Date().toString(),
+    // 原 UI 传的是 new Date().toString()（中文locale下含「中国标准时间」字样），
+    // Headers 只收 ByteString，非 ASCII 直接抛
+    // "Cannot convert argument to a ByteString"（真机 500，index 35 = 20013）。
+    // 网关只校验存在性：换成等价的 ASCII 表达。
+    Timezone: new Date().toUTCString(),
     Version: "0.2.7",
     Origin: API_BASE,
   };

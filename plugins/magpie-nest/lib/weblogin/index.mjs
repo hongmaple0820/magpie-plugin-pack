@@ -67,7 +67,7 @@ async function runWebLogin(channelId, { signal } = {}) {
       startUrl: channel.loginUrl,
     });
     await withDeadline(waitCdp(port, 20000), 25000, "browser: 浏览器没有在 25 秒内就绪");
-    const { token } = await withDeadline(cdpWatch({
+    const { token, cookieJar } = await withDeadline(cdpWatch({
       port,
       channelId,
       loginUrl: channel.loginUrl,
@@ -75,8 +75,9 @@ async function runWebLogin(channelId, { signal } = {}) {
       tokenSources: channel.tokenSources,
       timeoutMs: channel.timeoutMs ?? 240000,
       signal,
+      extraCookies: channel.extraCookies,
     }), budgetMs, "browser login: " + channelId + " 登录超时（未检测到令牌）");
-    return buildResult(token, channel);
+    return buildResult(token, channel, { cookieJar });
   } catch (error) {
     const message = error?.timeout
       ? "browser login: " + channelId + " 登录超时（4 分钟内未检测到令牌）；请重试或改用粘贴令牌"
@@ -96,7 +97,7 @@ function withDeadline(promise, ms, message) {
   return Promise.race([promise, guard]).finally(() => clearTimeout(timer));
 }
 
-function buildResult(token, channel) {
+function buildResult(token, channel, { cookieJar } = {}) {
   return {
     type: "success",
     access: token,
@@ -105,5 +106,6 @@ function buildResult(token, channel) {
     expires: 0,
     accountId: "browser",
     label: channel.windowTitle || "浏览器一键登录",
+    ...(cookieJar ? { cookieJar } : {}),
   };
 }
