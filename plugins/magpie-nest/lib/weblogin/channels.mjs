@@ -67,7 +67,23 @@ export const WEB_LOGIN_CHANNELS = {
     provider: "doubao",
     loginUrl: "https://www.doubao.com",
     targetDomains: ["doubao.com"],
-    tokenSources: [{ type: "cookie", key: "sessionid" }],
+    // 实测（2026-11-10）：协议已换代（/chat/completion + 指纹 query）。
+    // 会话靠整套 cookie（sessionid 只是其一），指纹参数（fp/msToken/a_bogus/
+    // device_id/tea_uuid/web_id）从 URL 抓。主令牌取 ttwid（长期稳定），
+    // extraCookies 收整套，extraQuery 收指纹。
+    tokenSources: [{ type: "cookie", key: "ttwid" }],
+    extraCookies: true,
+    extraQuery: true,
+    // 指纹参数只在页面发对话请求时出现在 URL 里，登录动作本身不产生。
+    // 拿到会话后自动在页面里发一条消息，把 fp/msToken/a_bogus 带出来。
+    // 指纹只在页面发对话请求时出现在 URL 里。触发前先把页面导到对话页并等输入框
+    // 就绪（首页落地页点不到），再注入一条消息。
+    triggerChat: {
+      text: "reply with exactly: OK",
+      navigate: "https://www.doubao.com/chat/",
+      readySelector: "textarea",
+      readyMs: 20000,
+    },
     windowTitle: "Doubao 一键登录",
     timeoutMs: 240000,
   },

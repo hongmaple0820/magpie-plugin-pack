@@ -11,7 +11,7 @@ import { wsConnect } from "./ws.mjs";
 
 const FULL_CHECK_THROTTLE_MS = 1500;
 
-export async function cdpWatch({ port, channelId, loginUrl, targetDomains, tokenSources, timeoutMs, signal, extraCookies }) {
+export async function cdpWatch({ port, channelId, loginUrl, targetDomains, tokenSources, timeoutMs, signal, extraCookies, extraQuery, triggerChat }) {
   const domainMatch = (url) => {
     if (!url) return false;
     let host;
@@ -108,6 +108,15 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
       const url = params?.request?.url ?? "";
       const headers = params?.request?.headers ?? {};
       if (!domainMatch(url)) return;
+      if (extraQuery && /fp=verify_/.test(url)) {
+        try {
+          const q = new URL(url).searchParams;
+          for (const key of ["device_id", "fp", "msToken", "a_bogus", "tea_uuid", "web_id"]) {
+            const v = q.get(key);
+            if (v) fpQuery[key] = v;
+          }
+        } catch {}
+      }
       const source = tokenSources.find((s) => s.type === "networkHeader");
       if (!source) return;
       const raw = headerValue(headers, source.key);
@@ -172,7 +181,7 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
   }
 
   async function fullCheck() {
-    if (tokenFound) return;
+    if (tokenFound && (!extraQuery || Object.keys(fpQuery).length > 0)) return;
     if (Date.now() - lastFullCheck < FULL_CHECK_THROTTLE_MS) return;
     lastFullCheck = Date.now();
     try {
@@ -217,6 +226,7 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
     return out.join("; ");
   }
   let lastCookies = [];
+  const fpQuery = {};
 
   await guard(() => send("Network.enable"));
   await guard(() => send("DOMStorage.enable"));
@@ -227,6 +237,70 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
     fullCheck().catch(() => {});
   }, FULL_CHECK_THROTTLE_MS);
 
+  // 主令牌命中后仍可能要等指纹 query：渠道声明了 triggerChat 就在页面里发一条
+  // 消息，让真实 chat 请求把 fp/msToken/a_bogus 带出来（豆包就是这样）。
+  /**
+   * 触发一次真实对话请求，好让指纹参数（fp/msToken/a_bogus）出现在 URL 里。
+   * 步骤：可选导航到对话页 → 等输入框就绪 → 填字 → 回车/点发送。
+   */
+  async function triggerChatOnce() {
+    const spec = typeof triggerChat === "string" ? { text: triggerChat } : triggerChat || {};
+    try {
+      if (spec.navigate) {
+        await send("Page.navigate", { url: spec.navigate }).catch(() => {});
+        await delay(3000);
+      }
+      const readyMs = Number(spec.readyMs) || 15000;
+      const sel = String(spec.readySelector || "textarea");
+      const started = Date.now();
+      for (;;) {
+        const probe = await send("Runtime.evaluate", {
+          expression: "!!document.querySelector(" + JSON.stringify(sel) + ")",
+          returnByValue: true,
+        }).catch(() => null);
+        if (probe?.result?.value === true) break;
+        if (Date.now() - started > readyMs) return;
+        await delay(700);
+      }
+      const typed = await send("Runtime.evaluate", {
+        expression: `(() => {
+          const ta = document.querySelector(${JSON.stringify(sel)});
+          if (!ta) return 'no-input';
+          ta.focus();
+          const text = ${JSON.stringify(String(spec.text || "hi"))};
+          if (ta.tagName === 'TEXTAREA') {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+            setter.call(ta, text);
+            ta.dispatchEvent(new Event('input', { bubbles: true }));
+          } else {
+            document.execCommand('insertText', false, text);
+          }
+          return ta.value === text || ta.textContent.includes(text) ? 'typed' : 'typed-partial';
+        })()`,
+        returnByValue: true,
+      }).catch(() => null);
+      await delay(1200);
+      await send("Runtime.evaluate", {
+        expression: `(() => {
+          const form = document.querySelector('form');
+          if (form) {
+            const btn = [...form.querySelectorAll('button')].filter((b) => !b.disabled && b.type === 'submit').pop();
+            if (btn) { btn.click(); return 'clicked'; }
+          }
+          const ta = document.querySelector(${JSON.stringify(sel)});
+          if (ta) {
+            for (const type of ['keydown', 'keypress', 'keyup']) {
+              ta.dispatchEvent(new KeyboardEvent(type, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true }));
+            }
+            return 'enter';
+          }
+          return 'no-action';
+        })()`,
+        returnByValue: true,
+      }).catch(() => {});
+    } catch {}
+  }
+
   const onAbort = () => {
     try {
       ws.close();
@@ -234,8 +308,15 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
   };
   signal?.addEventListener?.("abort", onAbort);
 
+  let triggered = false;
   try {
-    while (!tokenFound && Date.now() - startedAt < timeoutMs) {
+    while (Date.now() - startedAt < timeoutMs) {
+      const done = tokenFound && (!extraQuery || Object.keys(fpQuery).length > 0);
+      if (done) break;
+      if (tokenFound && extraQuery && !triggered) {
+        triggered = true;
+        await triggerChatOnce();
+      }
       await Promise.race([closedPromise, delay(500)]);
     }
   } finally {
@@ -253,7 +334,13 @@ export async function cdpWatch({ port, channelId, loginUrl, targetDomains, token
       timeout: true,
     });
   }
-  return { token: tokenFound, via: tokenVia, target, ...(extraCookies ? { cookieJar: collectCookies() } : {}) };
+  return {
+    token: tokenFound,
+    via: tokenVia,
+    target,
+    ...(extraCookies ? { cookieJar: collectCookies() } : {}),
+    ...(extraQuery && Object.keys(fpQuery).length ? { fpQuery } : {}),
+  };
 }
 
 function delay(ms) {
