@@ -706,3 +706,34 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 **magpie 侧**：旧路径条目 rm → 新路径 add；inkstone 登录态（hong）无损迁移；deepseek-web/chatgpt-web 归属不变。
 
 **待用户手动**（本机无 gh CLI）：GitHub 仓库 Description + Topics，文案见交付说明。
+
+### 双版本渠道 + 浏览器一键登录（2026-11-10，用户反馈：「有国内国外版的都需要支持」）
+
+**双版本原则**：厂商若同时经营中国版与国际版，两版**账号体系互不通用**，必须各占一个 provider id、各自登录。审计后补齐 4 家 × 2 版（共 9 个新 provider，合订包 16 → 25）：
+
+| 厂商 | 国际版 id | 中国版 id | 依据 |
+| --- | --- | --- | --- |
+| 阿里 Qwen | `qwen-ai`（已有） | `qwen-web`（已有） | chat.qwen.ai / qianwen.com |
+| 智谱 | `zai-web`（已有） | `glm`（已有） | chat.z.ai / chatglm.cn |
+| 阿里 Qoder | `qoder` | `qoder-cn` | 宿主 agents.go:281-282 就叫 qoder/qoderCN；社区 opencode-qoder-auth 有 region 表 |
+| 字节 TRAE | `trae-global` | `trae-cn` | 域名 trae.ai（api-sg/us + core*/grow*）与 trae.cn（api.trae.cn、trae-api-cn.mchost.guru） |
+| 腾讯 | `workbuddy-ai` | `workbuddy` + `codebuddy` | ChatLink oauth/adapters/codebuddy.ts:73-94 的 buddyProduct 表：同一授权协议、三个产品 |
+| 智谱 AutoGLM | `autoclaw` | `autoclaw-cn` | autoglm-api.autoglm.ai / autoglm-api.zhipuai.cn |
+
+**Agnes 是单版本**：agnes-ai.com 只是英文官网，API 只在 api.agnes-ai.cn（实测 .com/v1/models 返回 404），不需要拆两版。
+
+**执行拓扑**：4 个厂商互相正交、目录互不相交 → 并行派 4 个子代理各做一家，dispatcher 只保留入口注册、package.json、验收三个写点。
+
+**真机验收逼出的 6 个集成 bug**（子代理自测全过，联网即暴露）：
+1. `qoder` 把**上游**路径 `/agent_chat_generation` 当**入站**校验，宿主发的是 `/chat/completions` → 全部 404。
+2. `qoder-cn` 的模型 key 与国际版完全不同：国际版档位名（ultimate/performance/efficient）在中国版网关一律 400「Unsupported model」，真实 key 是 `qmodel_latest`/`qfmodel`/`kmodel_latest` 族。联网实测出 8 个可用模型。
+3. `trae` 静态模型表猜不中（账号实际 88 / 67 个）→ 改为拉账号真实目录 `/api/ide/v1/batch_get_detail_param`，并按「列了该模型的 function + config_name」路由；静态猜的 channel 上游只回 "the param is invalid"。
+4. `trae-global` 把**用量主机**当模型主机：`api-sg-central.trae.ai` / `api-us-east` / `grow-*` 都不是 chat 主机，模型只在 `coresg-normal`（新加坡）/ `coreva-normal`（美国），否则上游回一张 404 网页。
+5. `workbuddy-ai` 要求首条必须是 system，否则 `11128 first message is not system prompt`。
+6. **四家统一**：未在静态表里的模型不再本地 404，放行给上游判断——静态表只用于展示与能力声明，本地拒绝会让厂商一上新模型渠道就废。
+
+**浏览器一键登录（lib/weblogin/，零依赖）**：宿主只支持 `oauth` / `api` 两种登录方式，没有 WebView、没有本地回调端口——ChatLink 那种 Electron 内嵌登录窗口在插件里不存在。改用 **CDP 驱动用户真实浏览器**：拉起 Chrome/Edge（`--user-data-dir` 按渠道独立 + `--remote-debugging-port`）→ 手写 RFC6455 WebSocket 客户端（`ws.mjs`，客户端帧必须掩码）→ `Network.enable` + `Runtime.evaluate` → cookie / localStorage / 请求头三路抓取，1.5s 节流轮询（HttpOnly cookie 拿不到 DOM 事件，只能轮询）→ 命中渠道规则即关窗并落库。以 `oauth` + `url:""` 形态接入（宿主后台直接调 callback，不开页面、不弹输入框），与 inkstone 的客户端导入同款。zai-web 端到端实跑通过（抓到 278 字符令牌，`/api/models` 返回 200）。
+
+**顺带修的既有问题**：`agnes` 的 429 —— 该账号 37 次请求里 34 次被上游 429（未实名账户 RPM 低），插件原样透传错误体，用户看到的就是「回答中断、很乱」。loader 加 429/503 退避重试（2s/3s/5s，ChatLink 对 z.ai 同款）。`qoder` 排队码 10605 同样按 `retryAfterSeconds` 自动重试（最多 2 次，单次封顶 60s）。
+
+**终态**：25 个 provider 全部装载，7 个新渠道用真实账号联网测通（qoder-cn ✓ / trae-cn ✓ / trae-global ✓ / workbuddy ✓ / workbuddy-ai ✓ / autoclaw ✓；qoder 国际版受上游排队限制，重试机制已就位）；164/164 单测全绿；git 检查点 `1ddbb51`。

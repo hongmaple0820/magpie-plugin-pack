@@ -2,7 +2,7 @@
 
 <h1 align="center">Magpie Nest · magpie-nest</h1>
 
-<p align="center">One package, sixteen web-session AI channels — one install, sign in per channel</p>
+<p align="center">One package, twenty-five web-session AI channels — one install, sign in per channel. A vendor with a China edition and an international edition ships both.</p>
 
 <p align="center"><a href="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml"><img src="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml/badge.svg" alt="tests"/></a></p>
 
@@ -33,7 +33,9 @@ Everything lives in [plugins/magpie-nest](./plugins/magpie-nest). Each channel's
 | `deepseek-web` | DeepSeek web: sha3 PoW (wasm bundled) + per-turn session + patch stream | Paste token or credential JSON |
 | `chatgpt-web` | ChatGPT web (**experimental**): sentinel handshake + local PoW/turnstile + patch stream; may be blocked by TLS fingerprinting | Paste access token or credential JSON |
 
-> ⚠️ All channels are reverse-engineered web protocols, not official APIs: upstream changes can break them at any time, and accounts risk rate limits — don't use a primary account. When a channel id collides with an existing community plugin (`inkstone`/`deepseek-web`/`chatgpt-web`), pick the owner with `magpie plugin use`; this pack never steals a signed-in account.
+> ⚠️ All channels are reverse-engineered web protocols, not official APIs: upstream changes can break them at any time, and accounts risk rate limits — don't use a primary account. When a channel id collides with an existing community plugin (`inkstone`/`deepseek-web`/`chatgpt-web`/`qoder`/`qoder-cn`/`trae-cn`/`trae-global`/`workbuddy`/`workbuddy-ai`/`autoclaw`/`autoclaw-cn`), pick the owner with `magpie plugin use <plugin> <id>`; this pack never steals a signed-in account.
+>
+> **Both editions ship** where a vendor has them: Qwen (`qwen-ai` / `qwen-web`), Zhipu (`zai-web` / `glm`), Qoder, TRAE, Tencent WorkBuddy and Zhipu AutoClaw. The two editions are separate account systems at the vendor, so each gets its own provider id.
 
 ## Install (one command)
 
@@ -93,8 +95,8 @@ magpie-plugin-pack/
 ├── scripts/test-all.mjs
 ├── .github/workflows/test.yml
 └── plugins/
-    └── magpie-nest/     # the one package: 16 channels
-        ├── index.mjs             # exports the 16 plugin functions, nothing else
+    └── magpie-nest/     # the one package: 25 channels
+        ├── index.mjs             # exports the 25 plugin functions, nothing else
         ├── lib/<id>/             # per-channel protocol code + README
         ├── assets/               # deepseek-web sha3 wasm
         ├── test/

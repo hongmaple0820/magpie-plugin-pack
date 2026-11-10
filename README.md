@@ -2,11 +2,11 @@
 
 <h1 align="center">鹊巢 · magpie-nest</h1>
 
-<p align="center">一个包，16 家网页版 AI 渠道——一次安装，各自登录</p>
+<p align="center">一个包，25 家网页版 AI 渠道——一次安装，各自登录；有国内外双版本的厂商两版都收</p>
 
 <p align="center"><a href="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml"><img src="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml/badge.svg" alt="tests"/></a></p>
 
-本仓库（magpie-plugin-pack）发布一个合订包 **`magpie-nest`**：标准的 OpenCode v1 插件包（`config` / `auth` / `provider`），入口导出 16 个插件函数，宿主把每个函数当独立插件运行——**一次安装，16 个渠道各自登录、互不影响**。多账号、故障切换、额度展示、自动更新都由 magpie 负责。
+本仓库（magpie-plugin-pack）发布一个合订包 **`magpie-nest`**：标准的 OpenCode v1 插件包（`config` / `auth` / `provider`），入口导出 25 个插件函数，宿主把每个函数当独立插件运行——**一次安装，25 个渠道各自登录、互不影响**。多账号、故障切换、额度展示、自动更新都由 magpie 负责。
 
 > English: see [README.en.md](./README.en.md)。
 
@@ -32,8 +32,19 @@
 | `agnes` | Agnes AI 文本模型（图像/视频未实现） | 粘贴 API Key |
 | `deepseek-web` | DeepSeek 网页版：sha3 PoW（wasm 随包）+ 每轮会话 + 补丁流投影 | 粘贴 token 或凭据 JSON |
 | `chatgpt-web` | ChatGPT 网页版（**实验性**）：sentinel 握手 + 本地 PoW/turnstile + 补丁流；可能被 TLS 指纹拦截 | 粘贴 access token 或凭据 JSON |
+| `qoder` | 阿里 Qoder **国际版**（qoder.com）：17 个模型，COSY 加密信封 | 设备码 OAuth，或粘贴 PAT |
+| `qoder-cn` | 阿里 Qoder **中国版**（qoder.cn）：11 个模型，模型 key 与国际版不同（`qmodel_*` 族） | 设备码 OAuth，或粘贴 PAT |
+| `trae-global` | 字节 TRAE **国际版**（trae.ai）：账号目录实测 67 个模型，SOLO 协议 | 粘贴 IDE 令牌 + UID / 设备标识 |
+| `trae-cn` | 字节 TRAE **中国版**（trae.cn）：账号目录实测 88 个模型 | 粘贴 IDE 令牌 + UID / 设备标识 |
+| `workbuddy-ai` | 腾讯 WorkBuddy **国际版**（workbuddy.ai）：21 个模型，OpenAI 兼容 + UA 分档 | OAuth 一键登录，或粘贴访问令牌 |
+| `workbuddy` | 腾讯 WorkBuddy **中国版**（workbuddy.cn，走 copilot.tencent.com）：17 个模型 | OAuth 一键登录，或粘贴访问令牌 |
+| `codebuddy` | 腾讯 CodeBuddy **中国版**（copilot.tencent.com）：与中国版 WorkBuddy 同协议不同产品 | OAuth 一键登录，或粘贴访问令牌 |
+| `autoclaw` | 智谱 AutoClaw **国际版**（autoglm.ai）：4 个模型，官方客户端指纹头 | OAuth 一键登录（含滑块引导），或粘贴令牌 |
+| `autoclaw-cn` | 智谱 AutoClaw **国内版**（zhipuai.cn）：4 个模型 | 手机验证码登录，或粘贴令牌 |
 
-> ⚠️ 这些渠道全部是**逆向网页协议**，非官方 API：上游改版随时可能失效；账号有限流/封禁风险，勿用主力号。与既有社区插件同 id 时（`inkstone`/`deepseek-web`/`chatgpt-web`），用 `magpie plugin use` 指定归属，本包不抢已登录的账号。
+> **国内外双版本都收**：Qwen（`qwen-ai` / `qwen-web`）、智谱（`zai-web` / `glm`）、Qoder、TRAE、腾讯 WorkBuddy、智谱 AutoClaw 各有中国版与国际版，两版是厂商侧**互不通用的账号体系**，所以各占一个 provider id，各自登录、各自计费。
+>
+> ⚠️ 这些渠道全部是**逆向网页协议**，非官方 API：上游改版随时可能失效；账号有限流/封禁风险，勿用主力号。与既有社区插件同 id 时（`inkstone`/`deepseek-web`/`chatgpt-web`/`qoder`/`qoder-cn`/`trae-cn`/`trae-global`/`workbuddy`/`workbuddy-ai`/`autoclaw`/`autoclaw-cn`），用 `magpie plugin use` 指定归属，本包不抢已登录的账号：`magpie plugin use <插件> <provider id>`。
 
 ## 安装（一条命令）
 
@@ -58,6 +69,17 @@ magpie quota                     # 看墨点余额与 5h/7d 窗口
 magpie plugin                    # 看插件 / 账号 / 模型列表
 ```
 
+### 浏览器一键登录（无需复制粘贴）
+
+8 个网页会话渠道支持**弹出浏览器自动抓取令牌**：插件会拉起你本机的 Chrome/Edge（独立配置目录，按渠道分开，所以登录一次会记住会话），你在窗口里正常登录（扫码 / 账号密码 / 手机验证码都行），插件通过 DevTools 协议盯着该渠道的 cookie / localStorage / 请求头，拿到令牌就自动关窗、完成登录。全程不复制粘贴任何东西。
+
+覆盖：`zai-web`、`glm`、`qwen-web`、`qwen-ai`、`kimi-web`、`doubao`、`perplexity`、`raccoon`。每个渠道的「一键登录」都是登录方式里的**第一项**（GUI 默认选中），原来的粘贴方式依然保留作后备。
+
+- 零依赖：WebSocket 客户端、CDP 会话、浏览器启动都是手写的（`lib/weblogin/`）。
+- 4 分钟超时；失败时回退到粘贴令牌。
+- 配置目录在 `%LOCALAPPDATA%\magpie-nest-weblogin\<渠道>\`；换账号时删掉对应目录即可。
+- 找不到浏览器时可用 `MAGPIE_NEST_BROWSER` 指定可执行文件路径。
+
 其它渠道见 `plugins/magpie-nest/lib/<id>/README.md`。
 
 ## 更新
@@ -81,7 +103,7 @@ npm test
 # 等价于 node scripts/test-all.mjs —— 遍历 plugins/*/package.json 跑包内 npm test
 ```
 
-合订包内 `test/pack-install.test.mjs` 是装载回归：入口恰好导出 16 个插件函数、`files` 白名单复制后整包可装载（含 deepseek 的 wasm 资产）。
+合订包内 `test/pack-install.test.mjs` 是装载回归：入口恰好导出 25 个插件函数、`files` 白名单复制后整包可装载（含 deepseek 的 wasm 资产）。
 
 GitHub Actions（[.github/workflows/test.yml](./.github/workflows/test.yml)）在每次 push / PR 自动在 **ubuntu + windows** 双平台跑全部测试。零运行时依赖，无需 `npm install`。
 
@@ -95,8 +117,8 @@ magpie-plugin-pack/
 ├── scripts/test-all.mjs          # 跑全部测试
 ├── .github/workflows/test.yml    # CI：push/PR 双平台测试
 └── plugins/
-    └── magpie-nest/     # 唯一的包：16 渠道合订
-        ├── index.mjs             # 只导出 16 个插件函数（宿主各跑各的）
+    └── magpie-nest/     # 唯一的包：25 渠道合订
+        ├── index.mjs             # 只导出 25 个插件函数（宿主各跑各的）
         ├── lib/<id>/             # 各渠道协议实现 + README（inkstone 在 lib/inkstone/）
         ├── assets/               # deepseek-web 的 sha3 wasm
         ├── test/                 # 164 个单测
