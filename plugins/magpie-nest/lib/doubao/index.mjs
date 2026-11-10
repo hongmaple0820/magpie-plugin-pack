@@ -5,6 +5,7 @@ import { ID, NAME, NPM, API_BASE, modelRows, stripModel } from "./constants.mjs"
 import { CHAT_PATH, chatQuery, newConversationId, requestBody, clientHeaders, BOT_ID } from "./protocol.mjs";
 import { newState, foldEvent } from "./stream.mjs";
 import { webLoginMethod } from "../weblogin/index.mjs";
+import { pageRequest, reapIdleSessions } from "../weblogin/pagefetch.mjs";
 
 function sessionOf(auth) {
   const value = auth?.cookieJar ?? auth?.key ?? auth?.access ?? auth?.token ?? auth?.sessionId;
@@ -159,6 +160,25 @@ function lastUserText(messages) {
   return text(messages[messages.length - 1]);
 }
 
+/** 从豆包 SSE 文本里抽出正文，用于判断这轮是不是空回复（冷启动只回 ACK）。 */
+function textOfStream(text) {
+  let acc = "";
+  for (const block of String(text).split(/\n\n/)) {
+    const m = /^data: (.*)$/m.exec(block);
+    if (!m || !block.includes("STREAM_CHUNK")) continue;
+    try {
+      for (const op of JSON.parse(m[1]).patch_op || []) {
+        for (const b of op.patch_value?.content_block || []) {
+          if (b.block_type === 10000 && b.patch_type === 1 && b.content?.text_block?.text) {
+            acc += b.content.text_block.text;
+          }
+        }
+      }
+    } catch {}
+  }
+  return acc;
+}
+
 export const DoubaoPlugin = async () => ({
   async config(cfg) {
     cfg.provider ??= {};
@@ -222,12 +242,61 @@ export const DoubaoPlugin = async () => ({
             // 每次都是全新会话（服务器按 cookie 识别账号；复用旧会话 ID 会
             // 收到 DOWNLINK pull_msg_notify + end_type=3）。
             const wire = requestBody({ text: lastUserText(body.messages) });
-            const upstream = await fetch(API_BASE + CHAT_PATH + "?" + chatQuery(fpQuery), {
-              method: "POST",
-              headers: { ...clientHeaders(), Cookie: cookieJar },
-              body: JSON.stringify(wire),
-              ...(request.signal ? { signal: request.signal } : {}),
-            });
+            const url = API_BASE + CHAT_PATH + "?" + chatQuery(fpQuery);
+            const payload = JSON.stringify(wire);
+
+            // 豆包按「请求是否来自真浏览器」做风控：Node 直连即使 cookie 与指纹
+            // 全对也会被判 710022004 rate limited / subtype slide。优先在登录用的
+            // 页面里发，风控看到的是真浏览器；页面不可用时才回落直连。
+            let upstream = null;
+            // 冷启动规律（实测）：一轮对话的第一条请求网关只回 ACK 不给正文，
+            // 紧随其后的第二条才有内容。所以空回复必须重发——最多 3 次。
+            for (let attempt = 0; attempt < 3 && !upstream; attempt++) {
+              try {
+                const page = await pageRequest({
+                  channelId: ID,
+                  targetDomains: ["doubao.com", "www.doubao.com"],
+                  loginUrl: "https://www.doubao.com/chat/",
+                  tokenKeys: [],
+                  url,
+                  body: attempt === 0 ? payload : JSON.stringify(requestBody({ text: lastUserText(body.messages) })),
+                  // 实测：Accept 带 text/event-stream 时首轮只回 ACK；
+                  // 用 application/json 让网关按普通请求走，正文稳定返回。
+                  headers: { Accept: "application/json" },
+                  timeoutMs: 180000,
+                });
+                const usable =
+                  page.status === 200 &&
+                  !/error_code/.test(page.text.slice(0, 600)) &&
+                  textOfStream(page.text).length > 0;
+                if (usable) {
+                  upstream = new Response(page.text, {
+                    status: 200,
+                    headers: { "content-type": page.contentType || "text/event-stream" },
+                  });
+                } else if (attempt < 2) {
+                  // 重发一次即可拿到正文；不等待，冷启动预热靠的是「第二条」。
+                  await new Promise((r) => setTimeout(r, 600));
+                } else {
+                  // 两次都空仍要交给客户端一个合法响应，而不是回落直连去撞风控。
+                  upstream = new Response(page.text, {
+                    status: page.status || 200,
+                    headers: { "content-type": page.contentType || "text/event-stream" },
+                  });
+                }
+              } catch {
+                break;
+              }
+            }
+
+            if (!upstream) {
+              upstream = await fetch(url, {
+                method: "POST",
+                headers: { ...clientHeaders(), Cookie: cookieJar },
+                body: payload,
+                ...(request.signal ? { signal: request.signal } : {}),
+              });
+            }
 
             if (!upstream.ok) {
               const text = await upstream.text().catch(() => "");

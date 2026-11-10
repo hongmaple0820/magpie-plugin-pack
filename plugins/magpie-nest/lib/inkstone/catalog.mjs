@@ -110,6 +110,9 @@ export async function buildCatalog(token, uid, { signal } = {}) {
       inputModalities: Array.isArray(row.inputModalities) && row.inputModalities.length ? row.inputModalities : ["text"],
       free: row.free === true,
       pro: false,
+      // 保留厂商单价（墨点/百万 token），供 magpie Cost 字段与路由决策使用
+      inputPrice: row.inputPrice,
+      outputPrice: row.outputPrice,
     });
   }
   for (const row of orbitRows) {
@@ -127,6 +130,22 @@ export async function buildCatalog(token, uid, { signal } = {}) {
       free: false,
       pro: row.pro === true,
     });
+  }
+
+  // 计算 rate（倍率）：以最便宜的免费/低价模型为 1.0，贵模型按 (in+out)/基准 取整到 0.01
+  // 这样 magpie 智能路由、费用预估、额度卡片都能自动偏向便宜模型。
+  const allRows = [...raw.values()];
+  const priceList = allRows
+    .filter(r => typeof r.inputPrice === "number" && typeof r.outputPrice === "number")
+    .map(r => ({ r, sum: r.inputPrice + r.outputPrice }));
+  let baseSum = 1_000_000; // 兜底：100 万墨点/百万 token = rate 1.0
+  if (priceList.length) {
+    priceList.sort((a, b) => a.sum - b.sum);
+    const cheapest = priceList[0].sum;
+    if (cheapest > 0) baseSum = cheapest;
+  }
+  for (const { r, sum } of priceList) {
+    r.rate = sum === 0 ? 0 : Math.round((sum / baseSum) * 100) / 100;
   }
 
   // 别名：键名、小写键名、模型的 API id（Orbit 的 canonical_id）都能路由到同一条。
@@ -180,5 +199,18 @@ export function toModel(entry, base) {
   delete model.provider;
   if (entry.free === true) model.free = true;
   if (entry.supportsThinking) model.variants = { off: {}, high: {} };
+  // 写入厂商单价：magpie 会在 Cost 字段展示、并在路由/额度估算里使用
+  if (typeof entry.inputPrice === "number" && entry.inputPrice > 0) {
+    model.cost = {
+      input: entry.inputPrice / 1_000_000,
+      output: typeof entry.outputPrice === "number" ? entry.outputPrice / 1_000_000 : 0,
+      cache: { read: 0, write: 0 },
+    };
+  }
+  // 透出 rate 倍率：magpie 智能路由/额度卡片/费用预估会自动使用
+  if (typeof entry.rate === "number" && entry.rate > 0) {
+    model.rate = entry.rate;
+    model.rateWas = entry.rate; // 无历史折扣
+  }
   return model;
 }

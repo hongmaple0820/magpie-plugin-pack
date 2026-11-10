@@ -53,10 +53,14 @@ export function requestBody({ text, conversationId = "", sectionId = "" }) {
   const now = Date.now();
   return {
     client_meta: {
-      local_conversation_id: conversationId || newConversationId(),
-      conversation_id: conversationId ? "" : "",
+      // 每轮必须全新：服务器按 client_meta.local_conversation_id /
+      // messages[0].local_message_id / option.unique_key 去重，任何一项复用
+      // 都只回一个空的 is_finish 块（正文永远为空）。实测：真机请求原样重放
+      // 得 0 chunk，换这三个 ID 后同 body 立即返回正文。
+      local_conversation_id: newConversationId(),
+      conversation_id: "",
       bot_id: BOT_ID,
-      last_section_id: sectionId,
+      last_section_id: "",
       last_message_index: null,
       local_permissions: [
         { permission_name: "ACCESS_COARSE_LOCATION", status: 3 },
@@ -122,8 +126,20 @@ export function requestBody({ text, conversationId = "", sectionId = "" }) {
       message_storage_type: 0,
       related_deleted_message_ids: {},
       connector_info_list: [],
-      model_config: { model_item_key: "0", model_extra_params: {} },
-      aggregate_params: {},
+      // 真机抓包对比出来的两个必需字段（缺了服务器只回空壳 is_finish 块）：
+      model_config: { model_item_key: "0", model_extra_params: {}, reasoning_effort: 3 },
+      conversation_mode: 1,
+      aggregate_params: {
+        mention_skill_list: "[]",
+        mention_plugin_list: "[]",
+        mention_ext: "[{}]",
+        conversation_mode: "1",
+        mode_id: "1",
+        model_item_key: "0",
+        agent_mode: "2",
+        reasoning_effort: "3",
+        provider_id: "",
+      },
     },
   };
 }
