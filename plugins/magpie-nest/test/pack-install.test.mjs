@@ -26,10 +26,13 @@ const ok = (name) => {
 
 // 16 个渠道一个都不能少，一个都不能多（多出的导出函数会被宿主当插件执行）。
 const EXPECTED = [
-  "AgnesPlugin", "ChatGptWebPlugin", "DeepSeekWebPlugin", "DoubaoPlugin",
-  "GeminiPlugin", "GlmPlugin", "InkstoneAuthPlugin", "KimiPlugin",
-  "LobsteraiPlugin", "LoomyPlugin", "OpencodeFreePlugin", "PerplexityPlugin",
-  "QwenAiPlugin", "QwenPlugin", "RaccoonPlugin", "ZaiPlugin",
+  "AgnesPlugin", "AutoClawCnPlugin", "AutoClawPlugin", "ChatGptWebPlugin",
+  "CodeBuddyPlugin", "DeepSeekWebPlugin", "DoubaoPlugin", "GeminiPlugin",
+  "GlmPlugin", "InkstoneAuthPlugin", "KimiPlugin", "LobsteraiPlugin",
+  "LoomyPlugin", "OpencodeFreePlugin", "PerplexityPlugin", "QoderCnPlugin",
+  "QoderPlugin", "QwenAiPlugin", "QwenPlugin", "RaccoonPlugin",
+  "TraeCnPlugin", "TraeGlobalPlugin", "WorkBuddyAiPlugin", "WorkBuddyPlugin",
+  "ZaiPlugin",
 ];
 
 function resolveEntry(dir) {
@@ -77,7 +80,7 @@ async function smoke(dir, label) {
   assert.deepEqual(
     fns.map(([name]) => name).sort(),
     [...EXPECTED].sort(),
-    "入口必须只导出 16 个插件函数（多=辅助函数，少=渠道丢失）",
+    `入口必须只导出 ${EXPECTED.length} 个插件函数（多=辅助函数，少=渠道丢失）`,
   );
   assert.ok(Object.values(mod).every((value) => typeof value !== "function" || EXPECTED.includes(value.name) || true));
 

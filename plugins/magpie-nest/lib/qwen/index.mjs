@@ -18,6 +18,7 @@ import {
   uuid,
 } from "./constants.mjs";
 import { newState, foldEvent, drain, completionBody } from "./stream.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 const TICKET_COOKIE = "tongyi_sso_ticket=";
 
@@ -143,6 +144,11 @@ export const QwenPlugin = async () => ({
     provider: ID,
     maxConcurrency: 2,
     methods: [
+      webLoginMethod({
+        channel: "qwen",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴通义 tongyi_sso_ticket",

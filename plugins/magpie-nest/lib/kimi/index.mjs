@@ -18,6 +18,7 @@ import {
 } from "./constants.mjs";
 import { encodeFrame, FrameDecoder } from "./frame.mjs";
 import { newState, foldMessage, completionBody } from "./stream.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 function tokenOf(auth) {
   const value = auth?.key ?? auth?.access ?? auth?.token;
@@ -126,6 +127,11 @@ export const KimiPlugin = async () => ({
     provider: ID,
     maxConcurrency: 2,
     methods: [
+      webLoginMethod({
+        channel: "kimi",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴 Kimi 访问令牌",

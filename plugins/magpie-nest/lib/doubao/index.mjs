@@ -17,6 +17,7 @@ import {
   requestBody,
 } from "./constants.mjs";
 import { newState, foldEvent, drain, completionBody } from "./stream.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 function sessionOf(auth) {
   const value = auth?.key ?? auth?.access ?? auth?.token ?? auth?.sessionId;
@@ -139,6 +140,11 @@ export const DoubaoPlugin = async () => ({
     provider: ID,
     maxConcurrency: 1,
     methods: [
+      webLoginMethod({
+        channel: "doubao",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴豆包 sessionid",

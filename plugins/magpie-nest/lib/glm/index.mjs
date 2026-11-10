@@ -19,6 +19,7 @@ import { randomUUID } from "node:crypto";
 import { generateSign } from "./sign.mjs";
 import { refreshTokenOf, exchangeRefreshToken } from "./token.mjs";
 import { newState, foldEvent, ssePayloads, drain, completionBody } from "./stream.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 function expired() {
   return Object.assign(new Error("GLM: the sign-in has expired, paste a new refresh token"), {
@@ -188,6 +189,11 @@ export const GlmPlugin = async () => ({
     provider: ID,
     maxConcurrency: 2,
     methods: [
+      webLoginMethod({
+        channel: "glm",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴清言 refresh_token",

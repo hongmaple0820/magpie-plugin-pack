@@ -10,6 +10,7 @@
 // on) applies rather than silently changing answer quality.
 
 import { ID, NAME, NPM, API_BASE, CHAT_PATH, modelRows, stripModel, clientHeaders } from "./constants.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 function tokenOf(auth) {
   const value = auth?.key ?? auth?.access ?? auth?.token;
@@ -65,6 +66,11 @@ export const RaccoonPlugin = async () => ({
     provider: ID,
     maxConcurrency: 2,
     methods: [
+      webLoginMethod({
+        channel: "raccoon",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴 Raccoon Work 访问令牌",

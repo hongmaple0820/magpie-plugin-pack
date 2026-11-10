@@ -17,6 +17,7 @@ import {
   queryOf,
 } from "./constants.mjs";
 import { newState, foldEvent, drain, completionBody } from "./stream.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 function tokenOf(auth) {
   const value = auth?.key ?? auth?.access ?? auth?.token ?? auth?.sessionToken;
@@ -134,6 +135,11 @@ export const PerplexityPlugin = async () => ({
     provider: ID,
     maxConcurrency: 1,
     methods: [
+      webLoginMethod({
+        channel: "perplexity",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴 Perplexity 会话令牌",

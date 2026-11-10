@@ -6,6 +6,7 @@
 // protocol to translate, which is also why there is nothing here to get wrong.
 
 import { ID, NAME, NPM, API_BASE, CHAT_PATH, modelRows, stripModel } from "./constants.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 const BROWSER_CONTEXT = {
   Accept: "*/*",
@@ -70,6 +71,11 @@ export const ZaiPlugin = async () => ({
     provider: ID,
     maxConcurrency: 3,
     methods: [
+      webLoginMethod({
+        channel: "zai-web",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴 Z.ai 令牌",

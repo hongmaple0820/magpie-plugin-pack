@@ -7,6 +7,7 @@
 import { ID, NAME, NPM, API_BASE, modelRows, stripModel } from "./constants.mjs";
 import { createChat, flatten, messageBody, postMessage } from "./chat.mjs";
 import { newState, foldChunk, drain, completionBody } from "./stream.mjs";
+import { webLoginMethod } from "../weblogin/index.mjs";
 
 function tokenOf(auth) {
   const value = auth?.key ?? auth?.access ?? auth?.token;
@@ -120,6 +121,11 @@ export const QwenAiPlugin = async () => ({
     provider: ID,
     maxConcurrency: 2,
     methods: [
+      webLoginMethod({
+        channel: "qwen-ai",
+        label: "一键登录（弹出浏览器自动抓取，推荐）",
+      }),
+
       {
         type: "api",
         label: "粘贴 chat.qwen.ai 令牌",

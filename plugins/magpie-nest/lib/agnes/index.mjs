@@ -15,6 +15,23 @@ function expired() {
   return Object.assign(new Error("Agnes: the API key was refused"), { status: 401, signIn: "expired" });
 }
 
+/** Agnes 免费档 rpm 很低，突发并发直接 429；像 ChatLink 对 z.ai 那样退避重试几次。 */
+const RETRY_DELAYS_MS = [2000, 3000, 5000];
+
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener?.("abort", onAbort);
+      resolve();
+    }, ms);
+    function onAbort() {
+      clearTimeout(timer);
+      reject(Object.assign(new Error("agnes: aborted"), { status: 499 }));
+    }
+    signal?.addEventListener?.("abort", onAbort, { once: true });
+  });
+}
+
 function errorResponse(error) {
   const status = Number(error?.status) || 500;
   const headers = { "content-type": "application/json" };
@@ -83,16 +100,26 @@ export const AgnesPlugin = async () => ({
             }
             body.model = model;
 
-            const upstream = await fetch(API_BASE + CHAT_PATH, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: body.stream === true ? "text/event-stream" : "application/json",
-                Authorization: "Bearer " + key,
-              },
-              body: JSON.stringify(body),
-              ...(request.signal ? { signal: request.signal } : {}),
-            });
+            const headers = {
+              "Content-Type": "application/json",
+              Accept: body.stream === true ? "text/event-stream" : "application/json",
+              Authorization: "Bearer " + key,
+            };
+            let upstream = null;
+            for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
+              if (attempt > 0) {
+                await sleep(RETRY_DELAYS_MS[attempt - 1], request.signal);
+              }
+              upstream = await fetch(API_BASE + CHAT_PATH, {
+                method: "POST",
+                headers,
+                body: JSON.stringify(body),
+                ...(request.signal ? { signal: request.signal } : {}),
+              });
+              if (upstream.ok || (upstream.status !== 429 && upstream.status !== 503)) break;
+              // 429/503：把响应体读掉，让连接回池，再退避重试。
+              await upstream.text().catch(() => {});
+            }
 
             if (!upstream.ok) {
               const text = await upstream.text().catch(() => "");

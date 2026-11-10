@@ -1,4 +1,4 @@
-// One package, sixteen providers.
+// One package, twenty-five providers.
 //
 // magpie runs every exported function as its own plugin (the qoder pattern),
 // so each provider below keeps its own failure isolation, its own auth hook
@@ -8,8 +8,18 @@
 // The entry may export plugin functions and nothing else: a helper exported
 // from here would be executed as a plugin on load. Internals stay in
 // lib/<provider>/.
+//
+// A vendor that serves both a 中国版 and an 国际版 ships both, as two ids:
+// qwen/qwen-ai, glm/zai-web, qoder/qoder-cn, trae-cn/trae-global,
+// workbuddy/workbuddy-ai and autoclaw/autoclaw-cn. The two editions are
+// separate accounts at the vendor, so neither stands in for the other.
 
 export { AgnesPlugin } from "./lib/agnes/index.mjs";
+export { AutoClawCnPlugin } from "./lib/autoclaw/index.mjs";
+export { AutoClawPlugin } from "./lib/autoclaw/index.mjs";
+export { CodeBuddyPlugin } from "./lib/buddy/index.mjs";
+export { WorkBuddyAiPlugin } from "./lib/buddy/index.mjs";
+export { WorkBuddyPlugin } from "./lib/buddy/index.mjs";
 export { ChatGptWebPlugin } from "./lib/chatgpt-web/index.mjs";
 export { DeepSeekWebPlugin } from "./lib/deepseek-web/index.mjs";
 export { DoubaoPlugin } from "./lib/doubao/index.mjs";
@@ -21,7 +31,11 @@ export { LobsteraiPlugin } from "./lib/lobsterai/index.mjs";
 export { LoomyPlugin } from "./lib/loomy/index.mjs";
 export { OpencodeFreePlugin } from "./lib/opencode-free/index.mjs";
 export { PerplexityPlugin } from "./lib/perplexity/index.mjs";
+export { QoderCnPlugin } from "./lib/qoder/index.mjs";
+export { QoderPlugin } from "./lib/qoder/index.mjs";
 export { QwenAiPlugin } from "./lib/qwen-ai/index.mjs";
 export { QwenPlugin } from "./lib/qwen/index.mjs";
 export { RaccoonPlugin } from "./lib/raccoon/index.mjs";
+export { TraeCnPlugin } from "./lib/trae/index.mjs";
+export { TraeGlobalPlugin } from "./lib/trae/index.mjs";
 export { ZaiPlugin } from "./lib/zai/index.mjs";
