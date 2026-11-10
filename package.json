@@ -1,8 +1,8 @@
 {
   "name": "magpie-plugin-pack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "A collection of magpie / OpenCode provider plugins. Each plugin under plugins/ is published to npm independently.",
+  "description": "鹊巢 (magpie-nest) — 25 web-session AI channels for magpie / OpenCode in one install. Vendors with a China edition and an international edition ship both.",
   "license": "MIT",
   "workspaces": [
     "plugins/*"

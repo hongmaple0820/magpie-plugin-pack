@@ -15,6 +15,68 @@ const OFF_EFFORTS = new Set(["off", "none", "disabled"]);
 const AUTH_RE = /登录|token|session|auth|过期|失效|凭据|unauthor/i;
 const QUOTA_RE = /墨点|额度|quota|insufficient|credit|balance|余额|耗尽/i;
 
+/** 简单 Token 估算：中文按字符/1.5，其他字符/4，近似 gpt-4 tokenizer。
+ *  返回估算 token 数。不依赖外部 tokenizer，零依赖、极快。 */
+function estimateTokens(text) {
+  if (!text) return 0;
+  const chinese = (text.match(/[\u4e00-\u9fff]/g) || []).length;
+  const other = text.length - chinese;
+  return Math.ceil(chinese / 1.5 + other / 4); // 保守：中文字符/1.5，其他/4
+}
+
+/** 估算整个消息数组的 token，含 system/tool 结构开销。 */
+function estimateMessagesTokens(messages) {
+  let tokens = 0;
+  for (const m of messages) {
+    tokens += 4; // role+content 开销
+    const txt = typeof m?.content === "string" ? m.content : JSON.stringify(m?.content ?? "");
+    tokens += estimateTokens(txt);
+    if (Array.isArray(m?.tool_calls)) {
+      for (const c of m.tool_calls) {
+        tokens += 20 + estimateTokens(JSON.stringify(c?.function?.arguments ?? {}));
+      }
+    }
+  }
+  return tokens;
+}
+
+/** 安全截断：把 messages 从最旧的 user/assistant 轮次开始删，直到 token ≤ limit。
+ *  保留 system、最近的对话、tool 调用闭环。 */
+function truncateMessages(messages, maxTokens) {
+  if (!Array.isArray(messages) || messages.length <= 2) return messages;
+  let tokens = estimateMessagesTokens(messages);
+  if (tokens <= maxTokens) return messages;
+
+  const system = messages.filter(m => m?.role === "system" || m?.role === "developer");
+  const nonSystem = messages.filter(m => m?.role !== "system" && m?.role !== "developer");
+  if (nonSystem.length <= 2) return messages; // 只剩一轮，不再删
+
+  // 从最旧的非 system 消息开始删，每次删一对
+  const keep = [...system];
+  let removed = 0;
+  for (let i = 0; i < nonSystem.length; ) {
+    // 试删这一轮
+    const trial = [...keep, ...nonSystem.slice(i)];
+    if (estimateMessagesTokens(trial) <= 20000) {
+      // 能放下，剩下的全保留
+      keep.push(...nonSystem.slice(i));
+      break;
+    }
+    i += 1;
+    removed += 1;
+    // 太激进时，直接保留最后 3 轮
+    if (removed > nonSystem.length - 3) {
+      keep.push(...nonSystem.slice(-3));
+      break;
+    }
+  }
+  // 加个系统提示告知被截断（可选，避免模型困惑）
+  if (removed > 0) {
+    keep.unshift({ role: "system", content: `[上下文已截断，已移除前 ${removed} 条旧消息以适应模型上下文限制]` });
+  }
+  return keep;
+}
+
 function uuid() {
   try {
     return globalThis.crypto.randomUUID();
@@ -111,13 +173,19 @@ function pushBlocks(out, role, blocks) {
   else out.push({ role, content: [...blocks] });
 }
 
+const MAX_INPUT_TOKENS = 20000; // 端砚单请求安全阈值（留余量给 max_output）
+
 export function toOrbitBody({ body, chatId, canonicalId, supportsThinking }) {
   const b = body && typeof body === "object" ? body : {};
   const messages = Array.isArray(b.messages) ? b.messages : [];
+
+  // 1) 先估算 token，超限则自动截断旧对话
+  const messagesTrimmed = truncateMessages(messages, MAX_INPUT_TOKENS);
+
   const system = [];
   const out = [];
 
-  for (const message of messages) {
+  for (const message of messagesTrimmed) {
     const role = String(message?.role ?? "user").toLowerCase();
     if (role === "system" || role === "developer") {
       const text = textOf(message?.content);
@@ -177,7 +245,7 @@ export function toOrbitBody({ body, chatId, canonicalId, supportsThinking }) {
     model: String(canonicalId || b.model || ""),
     system,
     messages: out.length ? out : [{ role: "user", content: [{ type: "text", text: "" }] }],
-    tools: toolsOf(b, usedToolNames(messages)),
+    tools: toolsOf(b, usedToolNames(messagesTrimmed)),
     tool_choice: { type: "auto" },
     thinking: { enabled: supportsThinking === true && !explicitOff },
     metadata: { locale: "zh", client_version: CLIENT_VERSION },
