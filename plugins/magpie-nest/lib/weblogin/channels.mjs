@@ -101,10 +101,13 @@ export const WEB_LOGIN_CHANNELS = {
     provider: "raccoon",
     loginUrl: "https://xiaohuanxiong.com",
     targetDomains: ["xiaohuanxiong.com"],
+    // 实测（2026-11-10）：登录态是 cookie xhx_token（432 字符），
+    // 旧规则里的 sessionid 不存在。整套 cookie 随行（extraCookies）更稳。
     tokenSources: [
+      { type: "cookie", key: "xhx_token" },
       { type: "cookie", key: "sessionid" },
-      { type: "localStorage", key: "token" },
     ],
+    extraCookies: true,
     windowTitle: "Raccoon 一键登录",
     timeoutMs: 240000,
   },
