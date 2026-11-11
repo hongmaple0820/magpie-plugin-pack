@@ -9,6 +9,7 @@ import {
   errorResponse,
   upstreamErrorToResponse,
 } from "../lib/inkstone/bridge.mjs";
+import { openMessages } from "../lib/inkstone/orbit.mjs";
 
 let passed = 0;
 function ok(name) {
@@ -235,6 +236,54 @@ function parseChunks(text) {
   const resultIds2 = tiny.messages.flatMap((m) => m.content).filter((b) => b.type === "tool_result").map((b) => b.tool_use_id);
   assert.ok(resultIds2.every((id) => useIds2.has(id)), "兜底路径也不拆 tool 闭环");
   ok("toOrbitBody: 截断按模型窗口/user 边界/tool 闭环");
+}
+
+/* ---- j) 流停摆看门狗 + 429 退避 ---- */
+{
+  const encoder = new TextEncoder();
+  // 发一帧后永远不关的流：模拟上游停摆
+  const stalled = new Response(
+    new ReadableStream({
+      start(c) { c.enqueue(encoder.encode(frame("content_delta", { text: "半" }))); /* 挂住不关 */ },
+    }),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+  const t0 = Date.now();
+  const res = await orbitResponse(stalled, { model: "x", stream: true, stallMs: 80 });
+  const text = await res.text();
+  assert.ok(Date.now() - t0 < 2000, "看门狗要快速掐断，不能挂到分钟级");
+  assert.ok(text.includes("半"), "已收到的内容要先吐给客户端");
+  assert.ok(text.includes("停摆"), "停摆要给出明确错误帧: " + text.slice(-120));
+  ok("停摆看门狗：流式路径部分内容 + 错误帧 + 快速断开");
+
+  // 一个字节都不发的流：首刷阶段就停摆 → 502
+  const dead = new Response(
+    new ReadableStream({ start() { /* 什么都不发 */ } }),
+    { status: 200, headers: { "content-type": "text/event-stream" } },
+  );
+  const res2 = await orbitResponse(dead, { model: "x", stream: true, stallMs: 80 });
+  assert.equal(res2.status, 502);
+  assert.match((await res2.json()).error.message, /停摆/);
+  ok("停摆看门狗：零字节流 → 502");
+
+  // 429 退避：前两次 429，第三次给 SSE → 应当重试成功
+  const realFetch = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    if (calls <= 2) return new Response("rate limited", { status: 429 });
+    return sseResponse([frame("content_delta", { text: "好" }), frame("message_end", { stop_reason: "end_turn" })]);
+  };
+  try {
+    const res3 = await openMessages("jwt", "uid", {}, { retryDelays: [5, 5] });
+    assert.ok(res3.ok && res3.headers.get("content-type").includes("event-stream"));
+    assert.equal(calls, 3, "两次 429 后第三次成功");
+    const body = await res3.text();
+    assert.ok(body.includes("好"));
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  ok("openMessages：429 退避重试后拿到 SSE");
 }
 
 console.log(`\nbridge.test: ${passed} 组通过`);

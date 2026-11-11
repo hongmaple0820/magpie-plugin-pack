@@ -774,3 +774,19 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 ### inkstone 上下文截断修复（2026-11-11）
 
 上个会话遗留的截断代码有两处缺陷：`MAX_INPUT_TOKENS = 20000` 写死（端砚窗口 128000，长会话会被腰斩），且 `truncateMessages` 循环里判断又用了硬编码 20000（传入的参数被忽略）。历史 usage 87 次成功、零次上下文超限报错——这个阈值是臆想出来的保护。修复：上限改为 catalog 的 `contextWindow - maxOutput - 4096`（默认 115712），切断点只落在 user 消息上（user 之前不会有孤儿 tool 结果，tool 调用/结果闭环天然完整）；一轮都放不下时保最后一个完整轮次，宁可让上游报真实错误也不悄悄拆上下文。
+
+### inkstone（书生·端砚）「容易中断」根因与修复（2026-11-11）
+
+用户反馈书生渠道非常容易中断。usage.jsonl 115 条记录的结论：
+
+**根因排序**：
+1. **第三方模型经端砚网关极慢**：glm-5.3 p50=39s、deepseek-v4.1-flash p50=44s，尾部 >5 分钟；而端砚原生模型（Agents-A1/Sage-A1.5/书生-*）p50 < 1s。慢尾撞上客户端 ~5.2 分钟超时 → 499（9 次，全是 glm-5.3，17:40-17:56 连续四次每 5 分钟死一次）。这是上游特性，插件无法根治。
+2. **流停摆无看门狗**：`orbitEvents` 的 `reader.read()` 无超时；`openMessages` 的 6 分钟兜底因 `signal ??` 写法在调用方传 signal 时永不生效。停摆的流挂到客户端超时才断——5 分钟死空气。
+3. **429 无退避**：限流后 magpie 故障切换立即硬切，44 秒内连撞 8 个 429。
+
+**修复**（`orbit.mjs` + `bridge.mjs`）：
+- `openMessages` 429/503 退避重试（2s/3s/5s，与 agnes 同款；读掉响应体回池；abort-aware sleep）
+- `orbitEvents` 停摆看门狗：连续 120 秒零字节判死（只看字节不看完成——慢模型还在吐字就不掐），流式路径先吐已收内容再给错误帧，零字节流直接 502
+- 测试第 10-12 组锁定三档行为
+
+**给用户的建议**：agent 循环里用端砚原生模型（亚秒级），glm-5.3/deepseek 系走它们自己的直连渠道。

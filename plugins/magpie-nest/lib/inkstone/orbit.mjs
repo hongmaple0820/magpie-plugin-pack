@@ -56,18 +56,42 @@ export async function newChat(jwt, uid, { signal } = {}) {
   return data.id;
 }
 
-/** POST /local-agent/messages，成功时返回 SSE Response；失败抛 UpstreamError。 */
-export async function openMessages(jwt, uid, body, { signal } = {}) {
-  const response = await fetch(`${ORBIT_BASE}/local-agent/messages`, {
-    method: "POST",
-    headers: {
-      ...orbitHeaders(jwt, uid, { Accept: "text/event-stream", "Content-Type": "application/json" }),
-      "X-Client-Version": CLIENT_VERSION,
-    },
-    body: JSON.stringify(body),
-    signal: signal ?? AbortSignal.timeout(6 * 60 * 1000),
-    cache: "no-store",
+/** 429/503（限流/过载）退避重试。实测 2026-11-10：无退避时 magpie 故障切换
+ *  44 秒内连撞 8 个 429；退避后同样的突发能自己缓过来。 */
+const RETRY_DELAYS_MS = [2000, 3000, 5000];
+
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    signal?.addEventListener("abort", () => {
+      clearTimeout(timer);
+      const e = new Error("aborted");
+      e.name = "AbortError";
+      reject(e);
+    }, { once: true });
   });
+}
+
+/** POST /local-agent/messages，成功时返回 SSE Response；失败抛 UpstreamError。
+ *  retryDelays 仅供测试注入；生产走 RETRY_DELAYS_MS。 */
+export async function openMessages(jwt, uid, body, { signal, retryDelays } = {}) {
+  const delays = Array.isArray(retryDelays) ? retryDelays : RETRY_DELAYS_MS;
+  let response;
+  for (let attempt = 0; ; attempt++) {
+    response = await fetch(`${ORBIT_BASE}/local-agent/messages`, {
+      method: "POST",
+      headers: {
+        ...orbitHeaders(jwt, uid, { Accept: "text/event-stream", "Content-Type": "application/json" }),
+        "X-Client-Version": CLIENT_VERSION,
+      },
+      body: JSON.stringify(body),
+      signal: signal ?? AbortSignal.timeout(6 * 60 * 1000),
+      cache: "no-store",
+    });
+    if (response.ok || (response.status !== 429 && response.status !== 503) || attempt >= delays.length) break;
+    await response.text().catch(() => {}); // 读掉响应体，连接回池
+    await sleep(delays[attempt], signal);
+  }
   const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
   if (response.ok && response.body && contentType.includes("text/event-stream")) return response;
   await readEnvelope(response);

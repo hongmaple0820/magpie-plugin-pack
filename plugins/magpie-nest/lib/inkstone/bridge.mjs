@@ -323,7 +323,27 @@ function parseFrame(frame) {
   return event;
 }
 
-async function* orbitEvents(response, signal) {
+/** 流停摆看门狗：连续这么久没收到任何字节就判死（默认 120 秒）。
+ *  只看「有没有字节」，不看「完没完成」——慢模型只要还在吐字就不掐。
+ *  实测 2026-11-10：无看门狗时停摆的流要挂到客户端 5 分钟超时才断（499）。 */
+const STALL_MS = 120_000;
+
+function readWithStall(reader, stallMs) {
+  if (!Number.isFinite(stallMs) || stallMs <= 0) return reader.read();
+  return new Promise((resolve, reject) => {
+    let timer = setTimeout(() => {
+      timer = null;
+      reject(new Error(`书生·端砚流 ${Math.round(stallMs / 1000)} 秒没有任何数据（上游停摆）`));
+      reader.cancel().catch(() => {});
+    }, stallMs);
+    reader.read().then(
+      (row) => { if (timer) clearTimeout(timer); resolve(row); },
+      (error) => { if (timer) clearTimeout(timer); reject(error); },
+    );
+  });
+}
+
+async function* orbitEvents(response, signal, stallMs = STALL_MS) {
   if (!response?.body) return;
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
@@ -331,7 +351,7 @@ async function* orbitEvents(response, signal) {
   try {
     while (true) {
       if (signal?.aborted) break;
-      const { done, value } = await reader.read();
+      const { done, value } = await readWithStall(reader, stallMs);
       if (done) break;
       buf = (buf + decoder.decode(value, { stream: true })).replace(/\r\n/g, "\n");
       let cut;
@@ -503,9 +523,9 @@ function sseFrame(payload) {
  * 先缓冲到第一个内容事件：如果厂商在开头就报 error，可以返回真正的非 2xx，
  * 让 magpie 的 401/429/5xx 故障切换生效；已经开流之后只能发错误 chunk。
  */
-export async function orbitResponse(response, { model, stream = true, signal } = {}) {
+export async function orbitResponse(response, { model, stream = true, signal, stallMs } = {}) {
   const state = newState();
-  const events = orbitEvents(response, signal);
+  const events = orbitEvents(response, signal, stallMs);
   const closeEvents = async () => {
     try {
       await events.return?.();
