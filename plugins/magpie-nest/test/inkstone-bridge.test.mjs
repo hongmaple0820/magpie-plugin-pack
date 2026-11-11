@@ -196,4 +196,45 @@ function parseChunks(text) {
   ok("errorResponse / upstreamErrorToResponse 状态码与响应头");
 }
 
+/* ---- i) 上下文截断：按模型窗口算，user 边界切断，tool 闭环不拆 ---- */
+{
+  const zh = (n) => "字".repeat(n);
+  const longRound = (i) => [
+    { role: "user", content: zh(300) },
+    { role: "assistant", content: zh(300) },
+  ];
+  const messages = [
+    { role: "system", content: "你是端砚助手" },
+    ...Array.from({ length: 20 }, (_, i) => longRound(i)).flat(),
+    {
+      role: "assistant",
+      content: "",
+      tool_calls: [{ id: "call_x", type: "function", function: { name: "tool_0", arguments: "{}" } }],
+    },
+    { role: "tool", tool_call_id: "call_x", content: zh(100) },
+    { role: "user", content: zh(300) },
+  ];
+  // contextWindow=6000/maxOutput=512 → cap=max(4096, 6000-512-4096)=4096，远小于上文
+  const orbit = toOrbitBody({ body: { messages }, chatId: 1, canonicalId: "x", contextWindow: 6000, maxOutput: 512 });
+  assert.ok(orbit.system.some((s) => s.includes("上下文已截断")), "要有截断提示");
+  assert.equal(orbit.system[0], "你是端砚助手", "system 保留");
+  const useIds = new Set(orbit.messages.flatMap((m) => m.content).filter((b) => b.type === "tool_use").map((b) => b.id));
+  const resultIds = orbit.messages.flatMap((m) => m.content).filter((b) => b.type === "tool_result").map((b) => b.tool_use_id);
+  assert.ok(resultIds.every((id) => useIds.has(id)), "tool_result 必须有配对的 tool_use");
+  assert.ok(orbit.messages.length < messages.length, "确实截掉了旧消息");
+
+  // 默认窗口（128000）下同一段对话完全不截
+  const full = toOrbitBody({ body: { messages }, chatId: 1, canonicalId: "x" });
+  assert.ok(!full.system.some((s) => s.includes("上下文已截断")), "窗口够大时不截断");
+  // 40 轮文本 + 末轮 user 文本 = 41 个 text 块，一条不少（相邻同角色会合并，按块数算）
+  assert.equal(full.messages.flatMap((m) => m.content).filter((b) => b.type === "text").length, 41, "system 之外全保留");
+
+  // 窗口极小、一轮都放不下：保最后一个完整轮次，tool 闭环仍在
+  const tiny = toOrbitBody({ body: { messages }, chatId: 1, canonicalId: "x", contextWindow: 4096, maxOutput: 4096 });
+  const useIds2 = new Set(tiny.messages.flatMap((m) => m.content).filter((b) => b.type === "tool_use").map((b) => b.id));
+  const resultIds2 = tiny.messages.flatMap((m) => m.content).filter((b) => b.type === "tool_result").map((b) => b.tool_use_id);
+  assert.ok(resultIds2.every((id) => useIds2.has(id)), "兜底路径也不拆 tool 闭环");
+  ok("toOrbitBody: 截断按模型窗口/user 边界/tool 闭环");
+}
+
 console.log(`\nbridge.test: ${passed} 组通过`);

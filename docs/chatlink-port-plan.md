@@ -770,3 +770,7 @@ magpie plugin use F:\maple\magpie-plugin-pack\plugins\magpie-chatgpt-web-auth ch
 即使全部补齐，Node 直连仍被判 `710022004 rate limited`（subtype slide / semantic_reasoning，滑块与行为指纹）。新增 `lib/weblogin/pagefetch.mjs` 把请求放进真实页面发（真实 TLS 指纹与 JS 上下文），风控放行——非流式曾拿到真实回复「是」。但连续自动化测试会把账号打进风控冷却，需等待较长时间才恢复。
 
 **顺带修的既有问题**：inkstone 的 deepseek 系模型每请求限 6 张图（实测 7 张起稳定 400 `too many images`，glm-5.3 百图不限），上游报错不带数字、模型无法自愈。loader 现在按模型裁剪：保留最新 6 张，旧图换成占位文本。真机验证 100 图 + deepseek 从 400 变 200。
+
+### inkstone 上下文截断修复（2026-11-11）
+
+上个会话遗留的截断代码有两处缺陷：`MAX_INPUT_TOKENS = 20000` 写死（端砚窗口 128000，长会话会被腰斩），且 `truncateMessages` 循环里判断又用了硬编码 20000（传入的参数被忽略）。历史 usage 87 次成功、零次上下文超限报错——这个阈值是臆想出来的保护。修复：上限改为 catalog 的 `contextWindow - maxOutput - 4096`（默认 115712），切断点只落在 user 消息上（user 之前不会有孤儿 tool 结果，tool 调用/结果闭环天然完整）；一轮都放不下时保最后一个完整轮次，宁可让上游报真实错误也不悄悄拆上下文。

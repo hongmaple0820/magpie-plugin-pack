@@ -15,8 +15,8 @@ const OFF_EFFORTS = new Set(["off", "none", "disabled"]);
 const AUTH_RE = /登录|token|session|auth|过期|失效|凭据|unauthor/i;
 const QUOTA_RE = /墨点|额度|quota|insufficient|credit|balance|余额|耗尽/i;
 
-/** 简单 Token 估算：中文按字符/1.5，其他字符/4，近似 gpt-4 tokenizer。
- *  返回估算 token 数。不依赖外部 tokenizer，零依赖、极快。 */
+/** 简单 Token 估算：中文按字符/1.5，其他字符/4（近似 gpt-4 tokenizer，偏低估）。
+ *  只用于「超没超窗口」的粗判，不追求精确。 */
 function estimateTokens(text) {
   if (!text) return 0;
   const chinese = (text.match(/[\u4e00-\u9fff]/g) || []).length;
@@ -40,41 +40,39 @@ function estimateMessagesTokens(messages) {
   return tokens;
 }
 
-/** 安全截断：把 messages 从最旧的 user/assistant 轮次开始删，直到 token ≤ limit。
- *  保留 system、最近的对话、tool 调用闭环。 */
+/** 安全截断：超出模型上下文时，从最旧的轮次开始丢弃。
+ *  切断点只落在 user 消息上——user 之前不会有孤儿 tool 结果，
+ *  因此留下的部分里 tool 调用/结果必然成对。放不下时宁可原样上抛
+ *  （让上游报真实错误），也不悄悄拆散上下文。 */
 function truncateMessages(messages, maxTokens) {
-  if (!Array.isArray(messages) || messages.length <= 2) return messages;
-  let tokens = estimateMessagesTokens(messages);
-  if (tokens <= maxTokens) return messages;
+  if (!Array.isArray(messages) || messages.length === 0) return messages;
+  if (estimateMessagesTokens(messages) <= maxTokens) return messages;
 
-  const system = messages.filter(m => m?.role === "system" || m?.role === "developer");
-  const nonSystem = messages.filter(m => m?.role !== "system" && m?.role !== "developer");
-  if (nonSystem.length <= 2) return messages; // 只剩一轮，不再删
+  const system = [];
+  const rest = [];
+  for (const m of messages) {
+    const role = String(m?.role ?? "").toLowerCase();
+    (role === "system" || role === "developer" ? system : rest).push(m);
+  }
 
-  // 从最旧的非 system 消息开始删，每次删一对
-  const keep = [...system];
-  let removed = 0;
-  for (let i = 0; i < nonSystem.length; ) {
-    // 试删这一轮
-    const trial = [...keep, ...nonSystem.slice(i)];
-    if (estimateMessagesTokens(trial) <= 20000) {
-      // 能放下，剩下的全保留
-      keep.push(...nonSystem.slice(i));
-      break;
-    }
-    i += 1;
-    removed += 1;
-    // 太激进时，直接保留最后 3 轮
-    if (removed > nonSystem.length - 3) {
-      keep.push(...nonSystem.slice(-3));
-      break;
+  // cut 从小到大：第一个放得下的边界即保留最多上下文
+  for (let cut = 1; cut < rest.length; cut++) {
+    if (String(rest[cut]?.role ?? "").toLowerCase() !== "user") continue;
+    const kept = rest.slice(cut);
+    if (estimateMessagesTokens([...system, ...kept]) <= maxTokens) {
+      return [
+        ...system,
+        { role: "system", content: `[上下文已截断：已移除前 ${cut} 条旧消息以适应模型上下文限制]` },
+        ...kept,
+      ];
     }
   }
-  // 加个系统提示告知被截断（可选，避免模型困惑）
-  if (removed > 0) {
-    keep.unshift({ role: "system", content: `[上下文已截断，已移除前 ${removed} 条旧消息以适应模型上下文限制]` });
+  // 连一轮都放不下：保住最后一个完整轮次，宁可超限也不拆 tool 闭环
+  let lastUser = -1;
+  for (let i = rest.length - 1; i >= 0; i--) {
+    if (String(rest[i]?.role ?? "").toLowerCase() === "user") { lastUser = i; break; }
   }
-  return keep;
+  return lastUser >= 0 ? [...system, ...rest.slice(lastUser)] : messages;
 }
 
 function uuid() {
@@ -173,14 +171,21 @@ function pushBlocks(out, role, blocks) {
   else out.push({ role, content: [...blocks] });
 }
 
-const MAX_INPUT_TOKENS = 20000; // 端砚单请求安全阈值（留余量给 max_output）
+/** 输入 token 上限 = 模型上下文窗口 - 输出预留 - 安全余量。
+ *  由调用方从 catalog 的 contextWindow / maxOutput 传入；缺失时按默认窗口算。
+ *  下限 4096 防止脏数据把截断关成零。 */
+function inputTokenCap(contextWindow, maxOutput) {
+  const cw = Number(contextWindow) || 128000;
+  const mo = Number(maxOutput) || 8192;
+  return Math.max(4096, cw - mo - 4096);
+}
 
-export function toOrbitBody({ body, chatId, canonicalId, supportsThinking }) {
+export function toOrbitBody({ body, chatId, canonicalId, supportsThinking, contextWindow, maxOutput }) {
   const b = body && typeof body === "object" ? body : {};
   const messages = Array.isArray(b.messages) ? b.messages : [];
 
-  // 1) 先估算 token，超限则自动截断旧对话
-  const messagesTrimmed = truncateMessages(messages, MAX_INPUT_TOKENS);
+  // 超出模型窗口才截断，且只从 user 边界切断（见 truncateMessages）
+  const messagesTrimmed = truncateMessages(messages, inputTokenCap(contextWindow, maxOutput));
 
   const system = [];
   const out = [];

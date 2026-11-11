@@ -276,6 +276,9 @@ async function orbitFetch(cred, parsed, entry, init) {
       chatId,
       canonicalId: entry?.apiId || parsed.model,
       supportsThinking: entry?.supportsThinking === true,
+      // 截断上限按模型真实窗口算（catalog 归一化过，缺省 128000/8192）
+      contextWindow: entry?.contextWindow,
+      maxOutput: entry?.maxOutput,
     });
     const upstream = await openMessages(cred.token, cred.uid, orbitBody, { signal });
     return await orbitResponse(upstream, {
