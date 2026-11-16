@@ -1,0 +1,27 @@
+[package]
+name = "magpie-hud-native"
+version = "0.2.0"
+edition = "2021"
+
+# 外壳只做三件事：开一个无边框置顶窗口、把插件的紧凑页面（/hud.html）放进去、
+# 把页面的 IPC（拖动 / 改高度 / 开面板）转成窗口操作。画面交给 WebView2：
+# 文字走系统渲染（ClearType），审批按钮、输入框这些交互直接用 HTML 做。
+#
+# 为什么不再用 winit + softbuffer 手绘：canvas 里没有次像素抗锯齿，中文小字糊成一片；
+# 而审批回复/设置这类交互在 canvas 里等于自己写一套控件库。
+[dependencies]
+tao = "0.37"
+wry = "0.57"
+serde_json = "1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+
+# 托盘只有 Windows/macOS 有实现：Linux 上 tray-icon 需要 GTK（glib/gdk/cairo）开发包，
+# 那会给用户装插件带来系统级依赖——正是要避免的。没有托盘时「隐藏」会退化为「退出」，
+# 不会把用户锁在外面。
+[target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+tray-icon = "0.19"

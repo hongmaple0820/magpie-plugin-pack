@@ -1,0 +1,87 @@
+{
+  "name": "magpie-hud",
+  "version": "0.2.0",
+  "description": "鹊楼 (magpie-hud) — desktop HUD for local AI coding agents: panel + five MCP tools in one plugin.",
+  "type": "module",
+  "main": "./index.mjs",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "lib",
+    "test",
+    "README.md",
+    "LICENSE",
+    "page",
+    "webapp",
+    "dsh",
+    "desktop-rust/BUILD.md",
+    "desktop-rust/Cargo.toml",
+    "desktop-rust/Cargo.lock",
+    "desktop-rust/src",
+    "desktop-rust/magpie-hud-native.exe",
+    "desktop-rust/WebView2Loader.dll",
+    "desktop-rust/magpie-hud-native",
+    "desktop-native/go.mod",
+    "desktop-native/main_windows.go",
+    "desktop-native/main_other.go",
+    "desktop-native/magpie-hud-native.exe",
+    "desktop-native/magpie-hud-native"
+  ],
+  "keywords": [
+    "magpie",
+    "magpie-plugin",
+    "opencode",
+    "opencode-plugin",
+    "hud",
+    "panel",
+    "agents",
+    "magpie-hud"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "node tools/check/honesty.mjs && node tools/check/packaging.mjs",
+    "smoke:hud": "node tools/bench/hud-smoke.mjs"
+  },
+  "magpie": {
+    "name": "鹊楼",
+    "summary": {
+      "en": "Magpie HUD (鹊楼): the desktop HUD for your local AI coding agents — one plugin, both halves. The panel (a magpie page and panels) shows sessions, vendor plan quotas and the message chain; the same engine gives every agent five MCP tools through magpie's plugin tools server: list_sessions / send_message / start_session / get_message / list_quotas. Ported from Agent HUD's model.",
+      "zh": "鹊楼：本机 AI coding agent 的桌面 HUD——一个插件两半。面板（magpie 页面与面板）呈现会话、厂商套餐额度与消息投递链；同一引擎另经 magpie 插件工具服务器给所有 agent 五个 MCP 工具：list_sessions / send_message / start_session / get_message / list_quotas。移植自 Agent HUD 的模型。"
+    },
+    "page": {
+      "title": "鹊楼",
+      "file": "page/index.html",
+      "icon": "page/icon.svg",
+      "service": {
+        "port": 3477,
+        "option": "port"
+      }
+    },
+    "panels": [
+      {
+        "slot": "agents",
+        "file": "page/panel-agents.html",
+        "title": "鹊楼 · 会话"
+      },
+      {
+        "slot": "usage",
+        "file": "page/panel-usage.html",
+        "title": "鹊楼 · 额度"
+      },
+      {
+        "slot": "settings",
+        "file": "page/panel-settings.html",
+        "title": "鹊楼 · 设置"
+      }
+    ]
+  },
+  "dependencies": {
+    "fzstd": "^0.1.1"
+  }
+}

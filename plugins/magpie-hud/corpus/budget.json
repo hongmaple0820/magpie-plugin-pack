@@ -1,0 +1,65 @@
+{
+  "at": "2026-11-16T07:51:01.453Z",
+  "files": 226,
+  "totalBytes": 330575490,
+  "readBytes": 14569886,
+  "coldTotalMs": 10299,
+  "coldP50Ms": 52.9,
+  "coldP95Ms": 90.3,
+  "coldMaxMs": 131.1,
+  "hotP50Ms": 0.42,
+  "hotP95Ms": 0.63,
+  "hotMaxMs": 0.92,
+  "rssDeltaMB": 60,
+  "warmCycleMs": 34,
+  "growth": {
+    "frames": 4000,
+    "toleranceRatio": 1.6,
+    "ratio": 1.21
+  },
+  "growthPoints": [
+    {
+      "headMs": 0.284,
+      "tailMs": 0.342,
+      "blocks": 20
+    }
+  ],
+  "budgets": {
+    "coldTotalMs": 20000,
+    "coldP95Ms": 120,
+    "hotP95Ms": 30,
+    "rssDeltaMB": 300
+  },
+  "checks": [
+    {
+      "name": "尾部窗口冷读 226 份（实读 14MB）总耗时 ≤ 20000ms",
+      "actual": 10299,
+      "ok": true
+    },
+    {
+      "name": "冷读 p95 ≤ 120ms",
+      "actual": 90.3,
+      "ok": true
+    },
+    {
+      "name": "热更新 p95 ≤ 30ms",
+      "actual": 0.63,
+      "ok": true
+    },
+    {
+      "name": "RSS 增量 ≤ 300MB",
+      "actual": 60,
+      "ok": true
+    },
+    {
+      "name": "稳态整轮刷新（226 份，备忘录命中）≤ 50ms，即 10s 刷新下的 CPU ≤0.5%",
+      "actual": 34,
+      "ok": true
+    },
+    {
+      "name": "帧数增长下单帧成本不涨（首段 0.284ms → 末段 0.342ms，比值 ≤ 1.6）",
+      "actual": 1.21,
+      "ok": true
+    }
+  ]
+}

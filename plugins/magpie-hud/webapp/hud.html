@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鹊楼</title>
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="hud.css">
+</head>
+<body>
+<!-- 桌面 HUD 的紧凑视图：一条状态栏 + 可展开的会话/审批列表。
+     窗口本身由 desktop-rust 用 WebView2 提供；直接在浏览器打开也能用（只是不能拖动）。 -->
+<main id="hud" data-state="loading">
+  <div class="bar" id="bar" title="拖动这里移动窗口">
+    <span class="mark" aria-hidden="true">鹊</span>
+
+    <button class="pill" id="running" type="button" aria-expanded="false">
+      <b id="run-count">–</b><span>在跑</span>
+    </button>
+
+    <div class="clients" id="clients" aria-label="客户端"></div>
+
+    <button class="pill warn" id="pending" type="button" hidden>
+      <b id="pending-count">0</b><span>待批</span>
+    </button>
+
+    <div class="spacer"></div>
+
+    <div class="stat" title="最近 24 小时 token 总量（/api/tokens 默认窗口）">
+      <b id="tokens">–</b><span>tok / 24h</span>
+    </div>
+    <div class="stat" title="最近 24 小时折算成本（本地价格快照）">
+      <b id="cost">–</b><span>24h</span>
+    </div>
+    <div class="ring" id="ring" title="最满的额度窗口">
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <circle class="track" cx="18" cy="18" r="15"></circle>
+        <circle class="fill" id="ring-fill" cx="18" cy="18" r="15"></circle>
+      </svg>
+      <span id="ring-text">–</span>
+    </div>
+    <button class="ghost" id="more" type="button" aria-label="展开详情" aria-expanded="false">⌄</button>
+  </div>
+
+  <section class="panel" id="panel" hidden>
+    <header>
+      <h2>在跑</h2>
+      <span class="hint" id="panel-hint"></span>
+    </header>
+    <ul class="sessions" id="sessions"></ul>
+    <header id="asks-head" hidden><h2>待你批</h2><span class="hint">批准/拒绝会直接回给 agent</span></header>
+    <ul class="asks" id="asks"></ul>
+    <footer>
+      <span id="foot-left"></span>
+      <button class="link" id="open-page" type="button">打开完整面板 ↗</button>
+    </footer>
+  </section>
+</main>
+<script src="hud.js"></script>
+</body>
+</html>

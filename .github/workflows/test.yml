@@ -20,3 +20,10 @@ jobs:
       # 因此无需 npm install，直接按 monorepo 脚本逐个插件跑 npm test。
       - name: Run all plugin tests
         run: npm test
+      # 契约检查：测试跑夹具，这两条跑「真实的会话目录」与「真实的发布包」。
+      # 前者证不了「用户机器上不会冒出无来源状态」，后者证不了「装完能不能跑」。
+      - name: HUD contract checks
+        working-directory: plugins/magpie-hud
+        run: |
+          node tools/check/honesty.mjs
+          node tools/check/packaging.mjs

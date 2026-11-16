@@ -1,0 +1,199 @@
+{
+  "at": "2026-11-16T07:51:24.896Z",
+  "target": "lib/truth/fold.mjs",
+  "tests": [
+    "test/truth-fold.test.mjs",
+    "test/truth-collect.test.mjs"
+  ],
+  "killed": 27,
+  "survived": 0,
+  "invalid": 0,
+  "skipped": 1,
+  "score": 1,
+  "survivors": [],
+  "mutants": [
+    {
+      "id": "unknown-priority",
+      "from": "if (state.unknown) {",
+      "to": "if (!state.unknown) {",
+      "status": "killed"
+    },
+    {
+      "id": "ask-drop-error",
+      "from": "a.resultSeen && !a.resultError && !a.answered",
+      "to": "a.resultSeen",
+      "status": "killed"
+    },
+    {
+      "id": "ask-error-invert",
+      "from": "a.resultSeen && !a.resultError && !a.answered",
+      "to": "a.resultSeen && a.resultError",
+      "status": "killed"
+    },
+    {
+      "id": "ask-answered-invert",
+      "from": "&& !a.answered",
+      "to": "&& a.answered",
+      "status": "killed"
+    },
+    {
+      "id": "open-any-to-all",
+      "from": "if (openTurns || openSteps || openJobs) {",
+      "to": "if (openTurns && openSteps && openJobs) {",
+      "status": "killed"
+    },
+    {
+      "id": "user-input-and",
+      "from": "if (state.lastType === \"user/message\" || state.lastType === \"agent/inbox/spliced\") {",
+      "to": "if (state.lastType === \"user/message\" && state.lastType === \"agent/inbox/spliced\") {",
+      "status": "killed"
+    },
+    {
+      "id": "paused-threshold",
+      "from": "if (state.counts.turns > 0)",
+      "to": "if (state.counts.turns >= 0)",
+      "status": "killed"
+    },
+    {
+      "id": "starting-invert",
+      "from": "if (state.sessionId) return",
+      "to": "if (!state.sessionId) return",
+      "status": "killed"
+    },
+    {
+      "id": "dup-seq",
+      "from": "if (seq != null && seq <= state.lastSeq) return state;",
+      "to": "if (seq != null && seq < state.lastSeq) return state;",
+      "status": "killed"
+    },
+    {
+      "id": "surfaceop-gate",
+      "from": "if (ev.surfaceOp && ev.surfaceOp !== \"append\") {",
+      "to": "if (ev.surfaceOp && ev.surfaceOp === \"append\") {",
+      "status": "killed"
+    },
+    {
+      "id": "replace-invert",
+      "from": "ev.surfaceOp.op === \"replace\"",
+      "to": "ev.surfaceOp.op !== \"replace\"",
+      "status": "killed"
+    },
+    {
+      "id": "iserror-invert",
+      "from": "resultError: d.message?.isError === true,",
+      "to": "resultError: d.message?.isError === false,",
+      "status": "killed"
+    },
+    {
+      "id": "answered-regex",
+      "from": "/\"answers\"\\s*:/.test(text),",
+      "to": "/\"answers\"/.test(text),",
+      "equivalent": "对 {\"answers\":…} 两个正则都成立，属于等价突变",
+      "status": "equivalent"
+    },
+    {
+      "id": "stuck-gate",
+      "from": "if (stuck.length) {",
+      "to": "if (!stuck.length) {",
+      "status": "killed"
+    },
+    {
+      "id": "stuck-match",
+      "from": "filter(([, a]) => a.callId === callId)",
+      "to": "filter(([, a]) => a.callId !== callId)",
+      "status": "killed"
+    },
+    {
+      "id": "interrupt-invert",
+      "from": "d.reason?.kind === \"interrupted\" && Object.keys(s.approvals).length",
+      "to": "d.reason?.kind !== \"interrupted\" && Object.keys(s.approvals).length",
+      "status": "killed"
+    },
+    {
+      "id": "user-kind-invert",
+      "from": "if (d?.source?.kind === \"user\") {",
+      "to": "if (d?.source?.kind !== \"user\") {",
+      "status": "killed"
+    },
+    {
+      "id": "inbox-kind",
+      "from": "items.some((it) => it?.source?.kind === \"user\")",
+      "to": "items.some((it) => it?.source?.kind === \"assistant\")",
+      "status": "killed"
+    },
+    {
+      "id": "close-running-asks",
+      "from": "if (!a.resultSeen) next[id] = a;\n        s.asks = next;\n        s.lastUserMessageSeq = seq;\n      }\n      break;\n    }\n    case \"agent/inbox/spliced\"",
+      "to": "if (a.resultSeen) next[id] = a;\n        s.asks = next;\n        s.lastUserMessageSeq = seq;\n      }\n      break;\n    }\n    case \"agent/inbox/spliced\"",
+      "status": "killed"
+    },
+    {
+      "id": "gap-compare",
+      "from": "if (expected != null && seq != null && seq !== expected) {",
+      "to": "if (expected != null && seq != null && seq === expected) {",
+      "status": "killed"
+    },
+    {
+      "id": "fold-dup",
+      "from": "if (seq != null && seq <= s.lastSeq) continue;",
+      "to": "if (seq != null && seq < s.lastSeq) continue;",
+      "equivalent": "reduce 自身也挡重复 seq，fold 的提前跳过只是快路径",
+      "status": "equivalent"
+    },
+    {
+      "id": "clear-unknown",
+      "from": "if (s.unknown?.reason === \"no-evidence\") s.unknown = null;",
+      "to": "if (s.unknown?.reason !== \"no-evidence\") s.unknown = null;",
+      "status": "killed"
+    },
+    {
+      "id": "phase-detect",
+      "from": "if (state.phase !== phase) {",
+      "to": "if (state.phase === phase) {",
+      "status": "killed"
+    },
+    {
+      "id": "tokens-swap",
+      "from": "input: state.tokens.input + (Number(usage.inputTokens) || 0),",
+      "to": "input: state.tokens.input + (Number(usage.outputTokens) || 0),",
+      "status": "killed"
+    },
+    {
+      "id": "call-id-gate",
+      "from": "if (callId) s.calls = { ...state.calls, [callId]",
+      "to": "if (!callId) s.calls = { ...state.calls, [callId]",
+      "status": "killed"
+    },
+    {
+      "id": "ask-tool-exit-plan",
+      "from": "/(^|[^a-z])(ask_user|exit_plan_mode)/",
+      "to": "/(^|[^a-z])(ask_user)/",
+      "status": "killed"
+    },
+    {
+      "id": "approval-turn",
+      "from": "turn: s.currentTurn ?? null }",
+      "to": "turn: null }",
+      "status": "killed"
+    },
+    {
+      "id": "count-turns",
+      "from": "turns: state.counts.turns + 1 }",
+      "to": "turns: state.counts.turns }",
+      "status": "killed"
+    },
+    {
+      "id": "session-id",
+      "from": "s.sessionId = String(ev.id ?? s.sessionId ?? \"\");",
+      "to": "s.sessionId = String(s.sessionId ?? \"\");",
+      "status": "skipped",
+      "note": "anchor matched 0 times"
+    },
+    {
+      "id": "event-time",
+      "from": "if (typeof ev.time === \"number\") s.lastEventAt = ev.time;",
+      "to": "if (typeof ev.time === \"number\") s.lastEventAt = null;",
+      "status": "killed"
+    }
+  ]
+}

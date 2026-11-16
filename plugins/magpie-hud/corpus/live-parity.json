@@ -1,0 +1,21 @@
+{
+  "at": "2026-11-16T07:50:35.304Z",
+  "tapDir": "C:\\Users\\Administrator\\.magpie-hud\\tap",
+  "tapFiles": 1,
+  "sessions": 1,
+  "comparedRows": 18,
+  "mismatches": 0,
+  "identical": true,
+  "details": [
+    {
+      "session": "session-c819e523-f37d-4ebb-8fc7-c0b7505811ef",
+      "rows": 18,
+      "same": 18,
+      "diff": 0,
+      "transcriptEvents": 20,
+      "ok": true
+    }
+  ],
+  "failures": [],
+  "note": "tap 由 DSH 进程内插件直写；比对对象是同一批 durable 转录事件重新投影的结果。"
+}

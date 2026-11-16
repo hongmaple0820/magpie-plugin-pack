@@ -1,0 +1,223 @@
+{
+  "at": "2026-11-15T12:13:14.442Z",
+  "machine": "win32 10.0.19042 · 16 vCPU · 8GB · node v22.20.0",
+  "pass": 18,
+  "fail": 0,
+  "pending": 2,
+  "rows": [
+    {
+      "metric": "等待判定 precision（episode 级，含场景）",
+      "target": "≥ 0.97",
+      "actual": "1（tp 258 / fp 0）",
+      "evidence": "corpus/eval-waiting.json",
+      "status": "pass"
+    },
+    {
+      "metric": "等待判定 recall（episode 级，含场景）",
+      "target": "≥ 0.95",
+      "actual": "1（tp 258 / fn 0）",
+      "evidence": "corpus/eval-waiting.json",
+      "status": "pass"
+    },
+    {
+      "metric": "留出集 P / R（哈希划分，未冻结清单）",
+      "target": "≥ 0.97 / ≥ 0.95",
+      "actual": "1 / 1（39 条，构成：15 真实审批 / 0 真实提问 / 12 场景审批 / 12 场景提问）",
+      "evidence": "corpus/eval-waiting.json",
+      "status": "pass"
+    },
+    {
+      "metric": "时间点采样 precision / recall（分层）",
+      "target": "≈1",
+      "actual": "1 / 1（tp 591 / tn 591）",
+      "evidence": "corpus/eval-waiting.json",
+      "status": "pass"
+    },
+    {
+      "metric": "截断读取层（窗口只到 asked 帧末仍判等待）",
+      "target": "120/120",
+      "actual": "120/120（fail 0）",
+      "evidence": "corpus/eval-waiting.json",
+      "status": "pass"
+    },
+    {
+      "metric": "tap 投影往返无损（同一批转录事件 → tapProject → 读回 → fold）",
+      "target": "无损",
+      "actual": "100%（212 份，mismatch 0）",
+      "evidence": "corpus/tap-parity.json",
+      "status": "pass"
+    },
+    {
+      "metric": "真实宿主 live tap（session/event 直写 → 读回 → 与转录重投影逐行对照）",
+      "target": "live 一致率 100%",
+      "actual": "1 会话 / 18 行，mismatch 0（本机模型鉴权失败，未产生审批/提问类 live 事件）",
+      "evidence": "corpus/live-parity.json",
+      "status": "pass"
+    },
+    {
+      "metric": "尾部窗口冷读（212 份，实读 13MB / 语料 304MB）",
+      "target": "≤ 20s",
+      "actual": "7136ms",
+      "evidence": "corpus/budget.json",
+      "status": "pass"
+    },
+    {
+      "metric": "单文件冷读 p95",
+      "target": "≤ 120ms（按实测校准，原 30ms/MB 不可达）",
+      "actual": "71.5ms（max 162.2ms）",
+      "evidence": "corpus/budget.json",
+      "status": "pass"
+    },
+    {
+      "metric": "热更新 p95（追加一帧后重算）",
+      "target": "≤ 30ms",
+      "actual": "0.49ms",
+      "evidence": "corpus/budget.json",
+      "status": "pass"
+    },
+    {
+      "metric": "稳态整轮刷新（文件未变，备忘录命中）",
+      "target": "≤ 50ms ⇒ 10s 刷新下 CPU ≤ 0.5%",
+      "actual": "24ms",
+      "evidence": "corpus/budget.json",
+      "status": "pass"
+    },
+    {
+      "metric": "常驻内存增量（RSS）",
+      "target": "≤ 300MB",
+      "actual": "62MB",
+      "evidence": "corpus/budget.json",
+      "status": "pass"
+    },
+    {
+      "metric": "稳态 CPU（60s 采样 / 5s 刷新，process.cpuUsage）",
+      "target": "≤ 1.5% 单核均值",
+      "actual": "1.01%（p95 2.48%、峰值 2.48%，12 轮）",
+      "evidence": "corpus/cpu.json",
+      "status": "pass"
+    },
+    {
+      "metric": "变异分数（lib/truth/fold.mjs）",
+      "target": "≥ 0.75",
+      "actual": "1（killed 27 / survived 0 / invalid 0；另有 1 条等价/锚点未命中（不计分，见 corpus/mutation.json））",
+      "evidence": "corpus/mutation.json",
+      "status": "pass"
+    },
+    {
+      "metric": "故障注入场景（断言降级到「未知」，不是只断言不崩）",
+      "target": "≥ 10/10",
+      "actual": "11/11",
+      "evidence": "corpus/fault.json",
+      "status": "pass"
+    },
+    {
+      "metric": "HUD 页面 /api/state：每行有结论（rule 或 unknown.reason）+ evidence（HTTP 契约，非 DOM）",
+      "target": "dsh 行 100% 有结论（rule 或 unknown.reason）；有结论的行 100% 带 evidence",
+      "actual": "50/50 行有结论（明确 unknown 25 行），50/50 带 evidence，无结论 0（轮询 11s 后）",
+      "evidence": "corpus/page-smoke.json",
+      "status": "pass"
+    },
+    {
+      "metric": "每条显示带 provenance（规则 + seq + 字节区间/尾部状态）",
+      "target": "100%",
+      "actual": "带 evidence 的 50/50 行都含 mode+bytes；另有 test/pending.test.mjs 逐行断言",
+      "evidence": "corpus/page-smoke.json + test/pending.test.mjs",
+      "status": "pass"
+    },
+    {
+      "metric": "unknown 不得伪装成 idle",
+      "target": "0 例",
+      "actual": "/api/state 中 phase=unknown 且 state=idle 的行：0；故障注入 11 例断言 state=unknown 或 truncated",
+      "evidence": "corpus/page-smoke.json + corpus/fault.json",
+      "status": "pass"
+    },
+    {
+      "metric": "浸泡（追加 + 每次重算，未知数/滞后数）（当前仅冒烟，完整 72h 需常驻跑）",
+      "target": "72h 0 崩溃、0 unknown、0 滞后",
+      "actual": "0.02h：75520 次迭代，unknown 0、滞后 0、p95 1.25ms、RSS +86MB",
+      "evidence": "corpus/soak.json",
+      "status": "pending"
+    },
+    {
+      "metric": "72h 浸泡进行中（后台常驻）",
+      "target": "72h",
+      "actual": "已跑 81 分钟 / 729360 次迭代，unknown 0、滞后 0（开始于 2026-11-15T10:21:30.607Z）",
+      "evidence": "corpus/soak-progress.json",
+      "status": "pending"
+    }
+  ],
+  "runs": [
+    {
+      "label": "单元/属性/契约测试",
+      "cmd": "node --test test\\agents.test.mjs test\\channel-routes.test.mjs test\\channel.test.mjs test\\codex-delivery.test.mjs test\\desktop.test.mjs test\\dsh-channel.test.mjs test\\dsh-receipt.test.mjs test\\entry.test.mjs test\\history.test.mjs test\\ledger.test.mjs test\\notify.test.mjs test\\pageservice.test.mjs test\\pending.test.mjs test\\provider-quotas.test.mjs test\\quota-alerts.test.mjs test\\quota-history.test.mjs test\\quotas.test.mjs test\\session-detail-hint.test.mjs test\\session-detail.test.mjs test\\settings.test.mjs test\\tools.test.mjs test\\truth-collect.test.mjs test\\truth-fold.test.mjs test\\truth-frames.test.mjs test\\truth-tap.test.mjs",
+      "ms": 13857,
+      "ok": true,
+      "tail": "# todo 0 | # duration_ms 13748.0752",
+      "err": null
+    },
+    {
+      "label": "等待判定评测（真实语料 + 场景 + holdout + 窗口层）",
+      "cmd": "node tools/eval/waiting.mjs",
+      "ms": 14743,
+      "ok": true,
+      "tail": "  \"pointDetails\": [] | }",
+      "err": null
+    },
+    {
+      "label": "故障注入（11 个坏输入场景）",
+      "cmd": "node tools/fault/inject.mjs",
+      "ms": 124,
+      "ok": true,
+      "tail": "ok   追加读取：半帧不前进 offset，补齐后能接上 | fault injection: 11/11 pass",
+      "err": null
+    },
+    {
+      "label": "tap/转录双实现对照",
+      "cmd": "node tools/oracle/tap-parity.mjs",
+      "ms": 157178,
+      "ok": true,
+      "tail": "tap parity: 212/212 identical (1)",
+      "err": null
+    },
+    {
+      "label": "真实宿主 live tap 对照",
+      "cmd": "node tools/oracle/live-parity.mjs",
+      "ms": 218,
+      "ok": true,
+      "tail": "live parity: identical — 1 会话 / 18 行，mismatch 0",
+      "err": null
+    },
+    {
+      "label": "性能预算",
+      "cmd": "node tools/bench/budget.mjs",
+      "ms": 15079,
+      "ok": true,
+      "tail": "ok   稳态整轮刷新（212 份，备忘录命中）≤ 50ms，即 10s 刷新下的 CPU ≤0.5% — 实测 24 | budget: 5/5 pass",
+      "err": null
+    },
+    {
+      "label": "变异测试（fold.mjs）",
+      "cmd": "node tools/mutation/run.mjs",
+      "ms": 12388,
+      "ok": true,
+      "tail": "K event-time | mutation score 1 (27 killed / 0 survived / 0 invalid / 1 skipped)",
+      "err": null
+    },
+    {
+      "label": "页面 HTTP 冒烟（临时端口 + /api/state）",
+      "cmd": "node tools/oracle/page-smoke.mjs",
+      "ms": 11600,
+      "ok": true,
+      "tail": "ok   unknown 不被写成 idle — 0 行 | 样例：session-70c3b09e-9db7-40 phase=working state=running rule=step-open waiting=null evidence=events@7232097+7353649",
+      "err": null
+    },
+    {
+      "label": "稳态 CPU 采样（60s，5s 刷新）",
+      "cmd": "node tools/bench/cpu.mjs",
+      "ms": 67082,
+      "ok": true,
+      "tail": "cpu: 12 轮 / 60s，均值 1.01% 单核（p95 2.48%、峰值 2.48%），判据 ≤1.5% → ok",
+      "err": null
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+desktop/magpie-hud-desktop
+desktop/magpie-hud-desktop.exe
+
+# 可再生的大体积产物，不入库（cache 由 tools/corpus/extract.mjs 从 ~/.dsh/sessions 重建，
+# target 由 cargo build 重建；发布包里的 exe 走 files 白名单，仍入库）
+corpus/cache/
+desktop-rust/target/
+desktop-rust/m2.log
+
+# 编辑器/构建残留
+desktop-native/*.exe~
+desktop/%SystemDrive%/

@@ -1,0 +1,90 @@
+{
+  "at": "2026-11-16T07:45:20.610Z",
+  "pass": 11,
+  "fail": 0,
+  "cases": [
+    {
+      "name": "截断的最后一帧：HUD 必须显示「未知」，不是 running/idle",
+      "ok": true,
+      "detail": {
+        "state": "unknown",
+        "reason": "decode:no-valid-frame"
+      }
+    },
+    {
+      "name": "中间帧腐坏：要么 unknown，要么 working 但必须标明只读到窗口的一部分",
+      "ok": true,
+      "detail": {
+        "state": "unknown",
+        "truncated": null
+      }
+    },
+    {
+      "name": "空 zstd 文件：显示「未知」，不是 idle",
+      "ok": true,
+      "detail": {
+        "state": "unknown",
+        "reason": "decode:no-valid-frame"
+      }
+    },
+    {
+      "name": "seq 缺口：unknown(seq-gap)",
+      "ok": true,
+      "detail": {
+        "reason": "seq-gap:expected:1:got:2"
+      }
+    },
+    {
+      "name": "乱序事件：unknown(seq-gap)，不静默重排",
+      "ok": true,
+      "detail": {
+        "reason": "seq-gap:expected:1:got:2"
+      }
+    },
+    {
+      "name": "重复 seq：幂等，计数不翻倍",
+      "ok": true,
+      "detail": {
+        "toolCalls": 1
+      }
+    },
+    {
+      "name": "明文 jsonl（非 zstd）：照常解析",
+      "ok": true,
+      "detail": {
+        "phase": "working"
+      }
+    },
+    {
+      "name": "未知 surfaceOp：unknown 且粘滞",
+      "ok": true,
+      "detail": {
+        "reason": "surface-op:rewrite-history"
+      }
+    },
+    {
+      "name": "tap 半行：不消费半个事件，next 停在最后一个换行后",
+      "ok": true,
+      "detail": {
+        "events": 1,
+        "next": 75
+      }
+    },
+    {
+      "name": "tap 滚动：文件变短 → 从头重读并标记 rotated",
+      "ok": true,
+      "detail": {
+        "rotated": true,
+        "events": 1
+      }
+    },
+    {
+      "name": "追加读取：半帧不前进 offset，补齐后能接上",
+      "ok": true,
+      "detail": {
+        "halfEvents": 0,
+        "okEvents": 1
+      }
+    }
+  ]
+}

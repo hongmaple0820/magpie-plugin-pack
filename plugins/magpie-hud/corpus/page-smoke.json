@@ -1,0 +1,41 @@
+{
+  "at": "2026-11-16T07:51:26.282Z",
+  "scope": "http-api-only",
+  "waitedSec": 0,
+  "rows": 50,
+  "dshRows": 50,
+  "withTruth": 50,
+  "unknownVerdicts": 0,
+  "withEvidence": 50,
+  "missingTruth": 0,
+  "unknownAsIdle": 0,
+  "sample": {
+    "id": "session-6108d579-9d0f-4a6f-8ea4-07adbd075b3a",
+    "phase": "working",
+    "state": "running",
+    "rule": "activity-tail",
+    "mode": "events"
+  },
+  "checks": [
+    {
+      "name": "/api/state 返回会话行",
+      "ok": true,
+      "detail": "50 行（dsh 50）"
+    },
+    {
+      "name": "dsh 行全部有结论（rule 或 unknown.reason；后台补全 0s 后）",
+      "ok": true,
+      "detail": "50/50（其中明确 unknown 0 行）"
+    },
+    {
+      "name": "有结论的行都带 evidence（读法 + 字节区间）",
+      "ok": true,
+      "detail": "50/50"
+    },
+    {
+      "name": "unknown 不被写成 idle",
+      "ok": true,
+      "detail": "0 行"
+    }
+  ]
+}

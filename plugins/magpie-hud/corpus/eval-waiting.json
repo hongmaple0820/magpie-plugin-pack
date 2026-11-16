@@ -1,0 +1,55 @@
+{
+  "at": "2026-11-16T07:45:20.039Z",
+  "labels": {
+    "real": 77,
+    "scenario": 120,
+    "total": 197
+  },
+  "holdout": {
+    "labels": 39,
+    "metric": {
+      "precision": 1,
+      "recall": 1,
+      "tp": 51,
+      "fp": 0,
+      "fn": 0,
+      "tn": 39
+    },
+    "mix": {
+      "realApproval": 15,
+      "realQuestion": 0,
+      "scenarioApproval": 12,
+      "scenarioQuestion": 12
+    },
+    "splitRule": "sessionId 哈希 % 5 === 0（每次运行现算，未冻结清单）"
+  },
+  "files": 76,
+  "semantic": {
+    "precision": 1,
+    "recall": 1,
+    "tp": 258,
+    "fp": 0,
+    "fn": 0,
+    "tn": 197
+  },
+  "pointwise": {
+    "precision": 1,
+    "recall": 1,
+    "tp": 591,
+    "fp": 0,
+    "fn": 0,
+    "tn": 591
+  },
+  "sinceErrorMs": {
+    "p50": 0,
+    "max": 0,
+    "samples": 258
+  },
+  "windowPath": {
+    "ok": 120,
+    "fail": 0,
+    "failures": []
+  },
+  "semanticDetails": [],
+  "pointDetails": []
+}

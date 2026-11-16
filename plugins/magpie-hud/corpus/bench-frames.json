@@ -1,0 +1,105 @@
+{
+  "at": "2026-11-15T08:14:20.218Z",
+  "root": "C:\\Users\\Administrator\\.dsh\\sessions",
+  "files": 197,
+  "bytes": 295819129,
+  "cold": {
+    "p50": 47.404999999999745,
+    "p95": 113.13130000000092,
+    "max": 155.15660000000003,
+    "events": 13404,
+    "windowEventsP50": 81
+  },
+  "hot": {
+    "count": 25,
+    "p50": 0.09900000001653098,
+    "p95": 0.13269999998738058,
+    "perMBp95": 1496.1939267394364,
+    "errors": 0
+  },
+  "errors": [],
+  "differentialMismatches": [],
+  "truncatedWindows": 145,
+  "coldDetail": [
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--D-Documents-deepseek-harness-default-workspace--\\session-61a8f4a7-c05d-427d-92e1-930b24348470\\session.v4.jsonl.zstd",
+      "ms": 155.15660000000003,
+      "events": 89,
+      "error": null,
+      "size": 422494,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-front-project-hotel_xcx--\\session-42e5abe2-2658-4fc2-b4c6-a5a17230cfd6\\session.v4.jsonl.zstd",
+      "ms": 143.6183000000001,
+      "events": 86,
+      "error": null,
+      "size": 204159,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-maple-dsh-plugin-pack--\\session-7ac97593-a7de-4ac2-89d4-135260c064b9\\session.v4.jsonl.zstd",
+      "ms": 132.21399999999994,
+      "events": 84,
+      "error": null,
+      "size": 1743099,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-project-ai-crawler--\\session-c6e0b3bf-7ce3-44b4-a90d-b50e03a073ec\\session.v4.jsonl.zstd",
+      "ms": 127.2563000000082,
+      "events": 94,
+      "error": null,
+      "size": 1189960,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-front-project-hotel_xcx--\\session-b6974f46-a925-4680-b1e1-a6176daa1ec2\\session.v4.jsonl.zstd",
+      "ms": 126.6351999999988,
+      "events": 56,
+      "error": null,
+      "size": 4159690,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-project-dsh-inkstone-client--\\9ad0c6c8-516a-4d12-bb5b-b53feb3fcd6b\\session.v4.jsonl.zstd",
+      "ms": 124.98980000001029,
+      "events": 66,
+      "error": null,
+      "size": 174574,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-front-project-XCXEmPUniApp--\\b652cfdc-9bb7-409b-8521-a132ddcddbaf\\session.v4.jsonl.zstd",
+      "ms": 123.57889999999998,
+      "events": 54,
+      "error": null,
+      "size": 567618,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-front-project-hotel_xcx--\\session-bfdf3c0f-37e8-48c6-8442-14a972b74950\\session.v4.jsonl.zstd",
+      "ms": 119.67150000000038,
+      "events": 90,
+      "error": null,
+      "size": 790029,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-front-project-XCXEmPUniApp--\\session-cc22d018-ddf9-4a08-b06c-0c04802fd30f\\session.v4.jsonl.zstd",
+      "ms": 113.55190000000039,
+      "events": 76,
+      "error": null,
+      "size": 557255,
+      "truncated": true
+    },
+    {
+      "file": "C:\\Users\\Administrator\\.dsh\\sessions\\--F-front-project-jfxh5_pc--\\session-63554923-28e4-4768-adb2-7082f7905d4e\\session.v4.jsonl.zstd",
+      "ms": 113.13130000000092,
+      "events": 80,
+      "error": null,
+      "size": 362074,
+      "truncated": true
+    }
+  ]
+}

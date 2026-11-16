@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鹊楼</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="pulse" id="pulse" aria-hidden="true"></span>
+    <h1>鹊楼</h1>
+  </div>
+  <div class="meta">
+    <span id="busy" class="chip"></span>
+    <span id="updated" class="muted"></span>
+  </div>
+</header>
+
+<div id="banner" class="banner" hidden></div>
+
+<!-- 四块瓦片：一眼看完全局 -->
+<div id="tiles" class="tiles" role="list">
+  <div class="tile plain" aria-hidden="true"><div class="k">最紧额度</div><div class="skel" style="width:60%"></div></div>
+  <div class="tile plain" aria-hidden="true"><div class="k">24h 花费</div><div class="skel" style="width:45%"></div></div>
+  <div class="tile plain" aria-hidden="true"><div class="k">在跑</div><div class="skel" style="width:30%"></div></div>
+  <div class="tile plain" aria-hidden="true"><div class="k">等你</div><div class="skel" style="width:30%"></div></div>
+</div>
+
+<!-- 宽屏两栏：左「烧得怎么样」，右「谁在等我」；窄屏自动单列 -->
+<div class="grid">
+  <div class="col col-a">
+    <section class="sec" data-sec="quotas">
+      <div class="sec-head"><h2>额度</h2><span class="hint" id="quota-hint"></span></div>
+      <div id="quota-cards" class="cards"></div>
+    </section>
+    <section class="sec" data-sec="tokens">
+      <div class="sec-head">
+        <h2>用量</h2>
+        <div class="tabs" id="token-tabs" role="tablist">
+          <button type="button" class="tab on" data-period="24h" role="tab" aria-selected="true">24h</button>
+          <button type="button" class="tab" data-period="7d" role="tab" aria-selected="false">7d</button>
+          <button type="button" class="tab" data-period="30d" role="tab" aria-selected="false">30d</button>
+        </div>
+        <span class="hint" id="token-hint"></span>
+      </div>
+      <div id="token-chart" class="chart"></div>
+    </section>
+    <section class="sec" data-sec="providers">
+      <div class="sec-head"><h2>按 provider</h2><span class="hint" id="provider-hint"></span></div>
+      <div id="by-provider" class="providers"></div>
+    </section>
+  </div>
+  <div class="col col-b">
+    <section class="sec" data-sec="asks">
+      <div class="sec-head"><h2>待你处理</h2><span class="hint" id="ask-hint"></span></div>
+      <div id="ask-list" class="asks"></div>
+    </section>
+    <section class="sec" data-sec="sessions">
+      <div class="sec-head"><h2>会话</h2><span class="hint" id="session-hint"></span></div>
+      <div id="session-search" class="search"></div>
+      <div id="session-list" class="rows"></div>
+      <div id="session-pager" class="pager"></div>
+    </section>
+    <section class="sec" data-sec="journal">
+      <div class="sec-head"><h2>消息</h2><span class="hint" id="journal-hint"></span></div>
+      <div id="journal-list" class="rows"></div>
+    </section>
+  </div>
+</div>
+
+<section class="sec" data-sec="settings">
+  <div class="sec-head"><h2>桌面 HUD 设置</h2><span class="hint" id="settings-hint">改完即时生效</span></div>
+  <div id="settings" class="settings"></div>
+</section>
+
+<!-- HUD 视图（桌面桥 ?hud=1）：一屏看完全局，双击标题在紧凑/完整之间切换 -->
+<div id="hud">
+  <div class="hud-head">
+    <span class="pulse" id="hud-pulse" aria-hidden="true"></span>
+    <b>鹊楼</b>
+    <span id="hud-busy" class="hud-chip"></span>
+    <button type="button" id="hud-full" class="hud-btn" title="打开完整面板">⤢</button>
+  </div>
+  <div id="hud-rings" class="hud-rings"></div>
+  <div id="hud-stats" class="hud-stats"></div>
+  <div id="hud-line" class="hud-line"></div>
+</div>
+
+<div id="toasts" aria-live="polite"></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
