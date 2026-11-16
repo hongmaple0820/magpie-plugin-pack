@@ -5,7 +5,9 @@
 // data.result.{access_token, refresh_token}. The access token lives about an
 // hour, so it is cached per refresh token rather than minted per request.
 
+import { randomUUID } from "node:crypto";
 import { API_BASE, REFRESH_PATH, CLIENT_HEADERS } from "./constants.mjs";
+import { generateSign } from "./sign.mjs";
 
 const TTL_MS = 55 * 60 * 1000;
 const cache = new Map();
@@ -15,6 +17,18 @@ export function refreshTokenOf(auth) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** The sign headers the edge demands on every authenticated call, refresh included. */
+function signHeaders() {
+  const signature = generateSign();
+  return {
+    "X-Device-Id": randomUUID(),
+    "X-Request-Id": randomUUID(),
+    "X-Sign": signature.sign,
+    "X-Timestamp": signature.timestamp,
+    "X-Nonce": signature.nonce,
+  };
+}
+
 /** Exchange a refresh token for an access token, or throw. */
 export async function exchangeRefreshToken(refreshToken, fetcher = fetch) {
   const cached = cache.get(refreshToken);
@@ -22,7 +36,7 @@ export async function exchangeRefreshToken(refreshToken, fetcher = fetch) {
 
   const response = await fetcher(API_BASE + REFRESH_PATH, {
     method: "POST",
-    headers: { ...CLIENT_HEADERS, Authorization: "Bearer " + refreshToken, "Content-Type": "application/json" },
+    headers: { ...CLIENT_HEADERS, ...signHeaders(), Authorization: "Bearer " + refreshToken, "Content-Type": "application/json" },
     body: "{}",
   });
   if (response.status === 401 || response.status === 403) {
@@ -37,7 +51,8 @@ export async function exchangeRefreshToken(refreshToken, fetcher = fetch) {
   const result = body?.result ?? body?.data?.result ?? body?.data ?? body;
   const access = result?.access_token;
   if (typeof access !== "string" || !access) {
-    throw Object.assign(new Error("GLM's refresh answered no access_token"), { status: 401, signIn: "expired" });
+    const detail = typeof body?.message === "string" ? " (" + body.message + ")" : "";
+    throw Object.assign(new Error("GLM's refresh answered no access_token" + detail), { status: 401, signIn: "expired" });
   }
   const entry = {
     access,

@@ -108,7 +108,10 @@ function makePlugin(site) {
       async refresh(auth) {
         try {
           if (auth?.deviceChat) {
-            const dt = await refreshDevice(site, auth.refresh ?? auth.deviceRefresh, true);
+            // machineId 随登录落库（login.mjs deviceSignIn），续期时回传给
+            // 网关对齐设备身份 —— 与 ChatLink qoder.ts:406 的
+            // {refresh_token, machine_id} 一致。
+            const dt = await refreshDevice(site, auth.refresh ?? auth.deviceRefresh, true, auth.machineId);
             return { access: dt.token, refresh: dt.refresh, expires: dt.expires, deviceToken: dt.token, deviceRefresh: dt.refresh };
           }
           const jt = await refreshJob(site, auth?.refresh, auth?.accountId || auth?.email || auth?.uid);

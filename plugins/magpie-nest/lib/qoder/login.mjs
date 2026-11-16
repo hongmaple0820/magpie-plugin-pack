@@ -237,19 +237,24 @@ export async function refreshJob(site, refresh, user) {
   return { token: r.json.token, refresh: r.json.refresh_token, expires: expiresAt(r.json) };
 }
 
-function deviceRefreshBody(site, refresh) {
+function deviceRefreshBody(site, refresh, machineId) {
   const body = { refresh_token: refresh };
+  // machine_id 必须与登录 authorize 时绑定的设备身份一致（ChatLink
+  // oauth/adapters/qoder.ts:406 同款：refresh_token + machine_id，缺
+  // machine_id 视为不可续期）。老账号没存 machineId 时退回旧 body。
+  const mid = String(machineId ?? "").trim();
+  if (mid) body.machine_id = mid;
   return site.clientId && site.redirect ? { ...body, client_id: site.clientId, redirect_uri: site.redirect } : body;
 }
 
-export async function refreshDevice(site, refresh, chat = false) {
+export async function refreshDevice(site, refresh, chat = false, machineId) {
   if (!String(refresh ?? "").trim()) {
     if (chat) throw new SignInGone(`${site.name}: the sign-in lapsed; sign in again`);
     throw new Error("qoder device token refresh: missing refresh token; sign in again");
   }
   let r;
   try {
-    r = await openapi(site, DEVICE_REFRESH_PATH, { method: "POST", body: deviceRefreshBody(site, refresh) });
+    r = await openapi(site, DEVICE_REFRESH_PATH, { method: "POST", body: deviceRefreshBody(site, refresh, machineId) });
   } catch (e) {
     throw new Error(`qoder device token refresh: request failed: ${e?.message ?? e}`);
   }
