@@ -122,7 +122,7 @@ npm test
 
 合订包内 `test/pack-install.test.mjs` 是装载回归：入口恰好导出 25 个插件函数、`files` 白名单复制后整包可装载（含 deepseek 的 wasm 资产）。
 
-GitHub Actions（[.github/workflows/test.yml](./.github/workflows/test.yml)）在每次 push / PR 自动在 **ubuntu + windows** 双平台跑全部测试。零运行时依赖，无需 `npm install`。
+GitHub Actions（[.github/workflows/test.yml](./.github/workflows/test.yml)）在每次 push / PR 自动在 **ubuntu + windows** 双平台跑全部测试。magpie-hud 声明了运行时依赖（fzstd），CI 先 `npm ci` 再跑测试。
 
 ## 目录结构
 

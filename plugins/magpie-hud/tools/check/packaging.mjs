@@ -84,7 +84,7 @@ try {
       linked += 1;
     }
     if (deps.length && !linked) {
-      // CI 上不装依赖（npm test 也不装）：这一步没有前提就明说跳过，不能误判成「包坏了」
+      // 本机没装依赖时（CI 已 npm ci，正常不会走到这）：明说跳过，不能误判成「包坏了」
       console.log(`（本机没装 ${deps.join(", ")}，独立加载这一步没验到）`);
     } else {
       const out = execFileSync(

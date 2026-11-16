@@ -16,8 +16,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # 每个插件都是零运行时依赖，测试只用到 node 与 npm，
-      # 因此无需 npm install，直接按 monorepo 脚本逐个插件跑 npm test。
+      # magpie-hud 声明了运行时依赖（fzstd，zstd 解压），测试要真装：
+      # lib/truth/frames.mjs 静态 import 它，缺包时入口链直接崩。
+      - name: Install dependencies
+        run: npm ci
       - name: Run all plugin tests
         run: npm test
       # 契约检查：测试跑夹具，这两条跑「真实的会话目录」与「真实的发布包」。
