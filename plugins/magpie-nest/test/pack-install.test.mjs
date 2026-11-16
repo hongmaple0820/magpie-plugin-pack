@@ -158,11 +158,15 @@ try {
     assert.ok(list.includes(f), `安装后缺文件: ${f}`);
   }
   assert.ok(!list.some((f) => f.endsWith(".sh")), "合订包不应夹带临时脚本");
-  // package.json 里的 magpie.icon（data URI）必须能解码回同一个 SVG
+  // package.json 里的 magpie.icon（data URI）必须能解码回同一个 SVG。
+  // 比较前把 CRLF 归一成 LF：git 的 autocrlf 会把 Windows 工作区（含 CI 的
+  // windows runner）的文本文件转成 CRLF，这不是内容漂移；这条断言要抓的
+  // 是「改了 icon.svg 却没重新生成 data URI」。
+  const norm = (s) => s.replace(/\r\n/g, "\n");
   const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT, "package.json"), "utf8"));
   const m = /^data:image\/svg\+xml;base64,(.+)$/.exec(pkgJson.magpie?.icon || "");
   assert.ok(m, "package.json 缺 magpie.icon（data:image/svg+xml;base64,…）");
-  assert.equal(Buffer.from(m[1], "base64").toString("utf8"), fs.readFileSync(path.join(ROOT, "icon.svg"), "utf8"), "data URI 与 icon.svg 不一致");
+  assert.equal(norm(Buffer.from(m[1], "base64").toString("utf8")), norm(fs.readFileSync(path.join(ROOT, "icon.svg"), "utf8")), "data URI 与 icon.svg 不一致");
   ok(`本地依赖文件清单：${list.length} 个文件（16 渠道 + wasm + LICENSE / README / icon.svg）`);
   await smoke(installed, "node_modules 本地依赖：npm i ./magpie-nest");
 } finally {
