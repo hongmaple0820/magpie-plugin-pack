@@ -2,7 +2,7 @@
 
 <h1 align="center">Magpie Nest · magpie-nest</h1>
 
-<p align="center">One package, twenty-six web-session AI channels — one install, sign in per channel. A vendor with a China edition and an international edition ships both.</p>
+<p align="center">One package, twenty-seven web-session AI channels — one install, sign in per channel. A vendor with a China edition and an international edition ships both.</p>
 
 <p align="center"><a href="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml"><img src="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml/badge.svg" alt="tests"/></a></p>
 
@@ -95,8 +95,8 @@ magpie-plugin-pack/
 ├── scripts/test-all.mjs
 ├── .github/workflows/test.yml
 └── plugins/
-    └── magpie-nest/     # the one package: 26 channels
-        ├── index.mjs             # exports the 25 plugin functions, nothing else
+    └── magpie-nest/     # the one package: 27 channels
+        ├── index.mjs             # exports the 27 plugin functions, nothing else
         ├── lib/<id>/             # per-channel protocol code + README
         ├── assets/               # deepseek-web sha3 wasm
         ├── test/

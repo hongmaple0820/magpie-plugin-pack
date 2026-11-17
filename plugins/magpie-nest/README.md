@@ -2,7 +2,7 @@
 
 <p align="center"><img src="icon.svg" width="128" alt="鹊巢 logo"/></p>
 
-**26 家网页版 AI 渠道**合订为一个 magpie / OpenCode 插件包：一次安装，26 个 provider 各自独立——宿主把入口导出的每个插件函数当独立插件运行（qoder 同款模式），每个渠道有自己的登录、自己的并发限制、自己的故障隔离。喜鹊爱收集亮闪闪的东西回巢，这个包就是 magpie 的巢。
+**27 家网页版 AI 渠道**合订为一个 magpie / OpenCode 插件包：一次安装，27 个 provider 各自独立——宿主把入口导出的每个插件函数当独立插件运行（qoder 同款模式），每个渠道有自己的登录、自己的并发限制、自己的故障隔离。喜鹊爱收集亮闪闪的东西回巢，这个包就是 magpie 的巢。
 
 ```powershell
 magpie plugin add "F:\path\to\magpie-plugin-pack\plugins\magpie-nest"
