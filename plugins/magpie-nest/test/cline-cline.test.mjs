@@ -342,9 +342,12 @@ test("cline login: 设备码全流程（pending → 令牌 → register 换成�
     throw new Error(`unexpected fetch: ${u}`);
   };
   try {
-    const flow = deviceSignIn(SITE);
+    const flow = await deviceSignIn(SITE);
     assert.equal(flow.method, "auto");
-    assert.equal(flow.url, "https://api.workos.com/user_management/authorize/device");
+    // 交给用户的是带授权码的页面（WorkOS 给的 verification_uri_complete），
+    // 不是 device code 的 API 端点 —— magpie 在 authorize() 返回时就把 url 显示出来。
+    assert.equal(flow.url, "https://authkit.cline.bot/device?user_code=CODE-1");
+    assert.ok(flow.instructions.includes("CODE-1"));
     const result = await flow.callback();
     assert.equal(result.type, "success");
     assert.equal(result.access, "workos:reg-access"); // register 的令牌带前缀
@@ -378,11 +381,11 @@ test("cline login: 用户拒绝 → CancelledError；invalid_grant → ExpiredEr
         status: 400, headers: { "content-type": "application/json" },
       });
     };
-    await assert.rejects(() => deviceSignIn(SITE).callback(), ClineLoginCancelledError);
+    await assert.rejects(async () => (await deviceSignIn(SITE)).callback(), ClineLoginCancelledError);
 
     // 2026-11-17 实测：假 device_code 就是 invalid_grant
     outcome = "invalid_grant";
-    await assert.rejects(() => deviceSignIn(SITE).callback(), ClineLoginExpiredError);
+    await assert.rejects(async () => (await deviceSignIn(SITE)).callback(), ClineLoginExpiredError);
   } finally {
     globalThis.fetch = original;
   }
@@ -412,7 +415,7 @@ test("cline login: register 挂了也用已经拿到的 WorkOS 令牌（前缀�
     });
   };
   try {
-    const result = await deviceSignIn(SITE).callback();
+    const result = await (await deviceSignIn(SITE)).callback();
     assert.equal(result.access, "workos:bare-access");
     assert.equal(result.refresh, "bare-refresh");
     assert.equal(result.expires, undefined);

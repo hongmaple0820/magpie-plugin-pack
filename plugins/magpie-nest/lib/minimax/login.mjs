@@ -120,8 +120,15 @@ export class MinimaxLoginExpiredError extends Error {
   }
 }
 
-/** 发起设备码授权，返回登录信息与后台轮询回调。 */
-export function deviceSignIn(site) {
+/**
+ * 发起设备码授权：**先把 device code 拿回来**，再把带授权码的链接交给 magpie。
+ *
+ * ⚠️ 顺序很重要。magpie 在 `authorize()` 返回时就取 `url`/`instructions` 给用户看
+ * （internal/plugin/host.js:2455 调用、:2478 取字段），`callback()` 是**之后**才跑。
+ * 早先这里把 `url` 填成 device code 的 API 端点、授权码在 callback 里才请求 →
+ * 用户打开的是 `POST /oauth2/device/code`（只回 JSON），而且没人告诉他授权码是什么。
+ */
+export async function deviceSignIn(site) {
   const pkce = createMinimaxPkce();
   const deviceCodeUrl = `${site.authBase}${MINIMAX_DEVICE_CODE_PATH}`;
   const body = new URLSearchParams({
@@ -132,30 +139,30 @@ export function deviceSignIn(site) {
     code_challenge_method: "S256",
   });
 
+  let auth;
+  try {
+    const initRes = await fetch(deviceCodeUrl, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+      signal: AbortSignal.timeout(MINIMAX_OAUTH_TIMEOUT_MS),
+    });
+    const initBody = await initRes.json().catch(() => undefined);
+    auth = parseMinimaxDeviceAuthorization(initBody);
+    if (!auth) throw new Error("MiniMax device code: invalid authorization response");
+    auth.codeVerifier = pkce.verifier;
+  } catch (e) {
+    throw new Error(`MiniMax device code request failed: ${e?.message ?? e}`);
+  }
+
   return {
-    url: deviceCodeUrl,
-    instructions: "请在浏览器打开链接并输入授权码完成登录",
+    url: auth.verificationUriComplete || auth.verificationUri,
+    instructions: `在浏览器确认授权；若页面没自动填，授权码是 ${auth.userCode}`,
     method: "auto",
     async callback(signal) {
-      let auth;
-      try {
-        const initRes = await fetch(deviceCodeUrl, {
-          method: "POST",
-          headers: {
-            Accept: "application/json",
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body,
-          signal: AbortSignal.timeout(MINIMAX_OAUTH_TIMEOUT_MS),
-        });
-        const initBody = await initRes.json().catch(() => undefined);
-        auth = parseMinimaxDeviceAuthorization(initBody);
-        if (!auth) throw new Error("MiniMax device code: invalid authorization response");
-        auth.codeVerifier = pkce.verifier;
-      } catch (e) {
-        throw new Error(`MiniMax device code request failed: ${e?.message ?? e}`);
-      }
-
       const deadline = Date.now() + SIGN_IN_TIMEOUT;
       let intervalMs = auth.intervalSec * 1000;
 

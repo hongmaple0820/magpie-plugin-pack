@@ -172,28 +172,41 @@ async function registerAccount(access, refresh, signal) {
   return account;
 }
 
-/** 发起设备码授权，返回登录信息与后台轮询回调。 */
-export function deviceSignIn(site) {
+/**
+ * 发起设备码授权：**先把 device code 拿回来**，再把带授权码的链接交给 magpie。
+ *
+ * ⚠️ 顺序很重要。magpie 在 `authorize()` 返回时就取 `url`/`instructions` 给用户看
+ * （internal/plugin/host.js:2455 调用、:2478 取字段），`callback()` 是**之后**才跑。
+ * 早先这里把 `url` 填成 WorkOS 的 API 端点、授权码在 callback 里才请求 → 用户打开
+ * 的是 `POST /user_management/authorize/device`（只回 JSON），而且从头到尾没人告诉他
+ * 授权码是什么，登录等于走不通。
+ *
+ * 现在：authorize 阶段请求 device code，`url` 用 WorkOS 给的
+ * `verification_uri_complete`（自带 `?user_code=`，打开即预填），`instructions`
+ * 里再写一遍授权码兜底；callback 只负责轮询。
+ */
+export async function deviceSignIn(site) {
   const deviceUrl = `${site.workOsBase}${WORKOS_DEVICE_PATH}`;
   const authenticateUrl = `${site.workOsBase}${WORKOS_AUTHENTICATE_PATH}`;
 
+  let auth;
+  try {
+    const res = await postForm(deviceUrl, new URLSearchParams({ client_id: site.clientId }));
+    const body = await res.json().catch(() => undefined);
+    auth = parseClineDeviceAuthorization(body);
+    if (!auth) {
+      throw new Error(`device code: 响应不认识（HTTP ${res.status}）`);
+    }
+  } catch (error) {
+    throw new Error(`cline device code 请求失败: ${error?.message ?? error}`);
+  }
+
+  const page = auth.verificationUriComplete || auth.verificationUri;
   return {
-    url: deviceUrl,
-    instructions: "请在浏览器打开链接并输入授权码完成登录",
+    url: page,
+    instructions: `在浏览器确认授权；若页面没自动填，授权码是 ${auth.userCode}`,
     method: "auto",
     async callback(signal) {
-      let auth;
-      try {
-        const res = await postForm(deviceUrl, new URLSearchParams({ client_id: site.clientId }));
-        const body = await res.json().catch(() => undefined);
-        auth = parseClineDeviceAuthorization(body);
-        if (!auth) {
-          throw new Error(`device code: 响应不认识（HTTP ${res.status}）`);
-        }
-      } catch (error) {
-        throw new Error(`cline device code 请求失败: ${error?.message ?? error}`);
-      }
-
       const deadline = Date.now() + SIGN_IN_TIMEOUT;
       let intervalMs = auth.intervalSec * 1000;
       let networkFailures = 0;
