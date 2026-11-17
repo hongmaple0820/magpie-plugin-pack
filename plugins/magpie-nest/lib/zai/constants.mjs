@@ -7,7 +7,13 @@ export const ID = "zai-web";
 export const NAME = "Z.ai";
 export const NPM = "@ai-sdk/openai-compatible";
 export const API_BASE = "https://chat.z.ai/api";
-export const CHAT_PATH = "/v1/chat/completions";
+/**
+ * The web revision moved: /api/v1/chat/completions now answers
+ * 404 {"detail":"Not Found"} to any credential, while /api/v2/chat/completions
+ * answers 401 (and 405 to GET), i.e. only the token is refused. Probed live
+ * 2026-11-17 against both paths, same headers and body.
+ */
+export const CHAT_PATH = "/v2/chat/completions";
 
 const ROWS = [
   ["glm-5.3", "GLM-5.3"],

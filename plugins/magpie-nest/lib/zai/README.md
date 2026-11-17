@@ -23,7 +23,7 @@ magpie plugin add "F:\path\to\magpie-plugin-pack\plugins\magpie-nest"
 
 | 项 | 值 |
 | --- | --- |
-| 对话 | `POST https://chat.z.ai/api/v1/chat/completions` |
+| 对话 | `POST https://chat.z.ai/api/v2/chat/completions`（v1 路径已改，实测 2026-11-17 全 404） |
 | 鉴权 | `Authorization: Bearer <JWT>` |
 | 形状 | 标准 OpenAI（SSE 与非流式都是），两个方向直通 |
 
