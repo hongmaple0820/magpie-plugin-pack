@@ -65,14 +65,18 @@
 
 ### 思考档位（远端不下发，全模型共用一张表）
 
-| wire id | DSH 显示 | 实测思考字符数（2026-10-05） |
-|---------|----------|------------------------------|
+| wire id | OFM 里的显示名 | 实测思考字符数（2026-10-05） |
+|---------|----------------|------------------------------|
 | `none` | None | 0 |
 | `low` | Low | 67 |
 | `medium` | Medium | 379 |
 | `high` | High（**默认**） | 294 |
 | `max` | Extra | 1192 |
 
+> ⚠️ **`variants` 的键必须是 wire id**（`none/low/medium/high/max`），不能用显示名。
+> magpie 只取 `Object.keys(variants)` 当档位名（`internal/plugin/host.js:2357`），值整块丢弃；
+> 曾经这里用 `None/Extra` 当键 → 一个梯队词都不认 → DSH 里 cline 全部模型没有档位可选。
+> 代价只是 DSH 里 `max` 显示成 `max` 而不是 `Extra`。
 > ⚠️ **不传 `reasoning_effort` 就是不思考**，所以本插件声明默认 `high`（OFM `CLINE_DEFAULT_REASONING_EFFORT`）。
 > 代价是思考 token 计入 `completion_tokens`。
 > ⚠️ **请求侧绝不做档位白名单**：上游对不认识的档位静默忽略不报错

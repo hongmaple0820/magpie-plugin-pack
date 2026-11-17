@@ -44,12 +44,18 @@
 
 ### 思考档位（实测）
 
-| 模型 | `thinking_config.mode` | UI 档位（`variants`） | 下发形态 |
-|------|------------------------|----------------------|----------|
-| `MiniMax-M3.1-Flash-Preview` | `forced_on` | `default,low,medium,high,xhigh,max`（默认 `default`） | **必须** `thinking:{type:'adaptive'}` + 根级 `output_config:{effort}`；传 `disabled` ⇒ 400 `requires adaptive thinking (2013)` |
-| `MiniMax-M3` | `switchable` | `on`（开启思考）、`none`（关闭思考）；不设默认档 | `on` ⇒ `thinking:{type:'adaptive'}`；`none` ⇒ `thinking:{type:'disabled'}`；**不发 thinking 即不思考**（服务端默认） |
+| 模型 | `thinking_config.mode` | DSH 档位（`variants` 的键） | 下发形态 |
+|------|------------------------|----------------------------|----------|
+| `MiniMax-M3.1-Flash-Preview` | `forced_on` | `low,medium,high,xhigh,max`（远端另有 `default`，但不是 magpie 梯队词，不能当键） | **必须** `thinking:{type:'adaptive'}` + 根级 `output_config:{effort}`；传 `disabled` ⇒ 400 `requires adaptive thinking (2013)` |
+| `MiniMax-M3` | `switchable` | `high`（= 开启思考）、`none`（关闭思考）；不设默认档 | `high`/`on`/其他值 ⇒ `thinking:{type:'adaptive'}`（**不带** `output_config`，M3 无远端档位）；`none` ⇒ `thinking:{type:'disabled'}`；**不发 thinking 即不思考**（服务端默认） |
 | `MiniMax-M2.7` / `M2.7-highspeed` | `forced_on` | 无（不声明 `reasoning`） | **不发 thinking 字段**（服务端默认思考）；传 `disabled` 被静默忽略 |
 
+> ⚠️ `variants` 的键必须是 magpie 梯队词：`none/minimal/low/medium/high/xhigh/max`（+别名 `light`/`extra_high`）。
+> magpie 只取 `Object.keys(variants)`（`internal/plugin/host.js:2357`），值整块丢弃；不在梯队里的键
+> 一个都匹配不上，**只剩 `none` 一档时 `dshModelLevels` 直接返回 nil**（`internal/agent/dsh.go:1935`），
+> DSH 里就一个档位都不显示。所以 OFM 的 `on`/`default` 都不能直接当键：M3 的「开启思考」用 `high`
+> 表达，M3.1 的 `default` 丢弃——远端真实档位另存在模型行的 `vendorEfforts` 里，由 `chat.mjs`
+> 判断「有真档位」还是「只有开关」。
 > ⚠️ `output_config` 是 **payload 根级**字段，和 `thinking` 并列——塞进 `thinking` 里面服务端不认。
 > ⚠️ `forced_on` 的模型**绝不**追加 `none` 档：M3.1 会硬 400，M2.7 会被静默忽略（用户以为关了、实际没关）。
 > ⚠️ M3 远端没有 `default_effort`，所以**不设** `defaultEffort`——擅自设成 `on` 会改变用户既有行为。
@@ -75,10 +81,10 @@
 
 ## 兜底模型表（4 条，顺序照远端 model_order）
 
-| id | name | ctx | maxTokens | image | thinkingMode | effortOptions |
-|----|------|-----|-----------|-------|--------------|---------------|
-| MiniMax-M3.1-Flash-Preview | M3.1-Flash-Preview | 1M | 128K | ✅ | forced_on | default,low,medium,high,xhigh,max |
-| MiniMax-M3 | M3 | 1M | 128K | ✅ | switchable | — |
+| id | name | ctx | maxTokens | image | thinkingMode | effortOptions（远端原样） |
+|----|------|-----|-----------|-------|--------------|---------------------------|
+| MiniMax-M3.1-Flash-Preview | M3.1-Flash-Preview | 1M | 128K | ✅ | forced_on | default,low,medium,high,xhigh,max（DSH 档位去掉 `default`） |
+| MiniMax-M3 | M3 | 1M | 128K | ✅ | switchable | —（DSH 给 `high`/`none` 两态） |
 | MiniMax-M2.7-highspeed | M2.7-highspeed | 200K | 128K | ❌ | forced_on | — |
 | MiniMax-M2.7 | M2.7 | 200K | 128K | ❌ | forced_on | — |
 
