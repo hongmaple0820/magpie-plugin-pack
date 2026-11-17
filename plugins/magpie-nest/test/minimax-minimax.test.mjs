@@ -64,26 +64,32 @@ test("minimax constants: 兜底模型 4 条，顺序照远端 model_order", () =
   );
 });
 
-test("minimax constants: M3.1 forced_on —— 6 档、defaultEffort=default、alwaysThinks", () => {
+test("minimax constants: M3.1 forced_on —— 5 个 DSH 可表达的档位（default 丢弃）、defaultEffort=default、alwaysThinks", () => {
   const m = MODEL_ROWS[0];
   assert.equal(m.alwaysThinks, true);
   assert.equal(m.reasoning, true);
-  assert.deepEqual(m.efforts, ["default", "low", "medium", "high", "xhigh", "max"]);
+  // 远端给 6 档，但 "default" 不是 magpie 梯队词，作为 variants 键会被整条丢弃，
+  // 所以可见档位是 5 个；真正的远端档位留在 vendorEfforts 里供 chat.mjs 判断。
+  assert.deepEqual(m.efforts, ["low", "medium", "high", "xhigh", "max"]);
+  assert.deepEqual(m.vendorEfforts, ["low", "medium", "high", "xhigh", "max"]);
   assert.equal(m.defaultEffort, "default");
   assert.equal(m.thinkingMode, "forced_on");
   // 窗口取档位表最大档（1M），不是 limit.context 的 512K
   assert.equal(m.limit.context, 1_000_000);
 });
 
-test("minimax constants: M3 switchable —— 追加 on/none 两态（on 在前），不擅自设默认档", () => {
+test("minimax constants: M3 switchable 无远端档位 —— 只给 开(high)/关(none) 两态", () => {
   const m = MODEL_ROWS[1];
   assert.equal(m.alwaysThinks, false);
   assert.equal(m.reasoning, true);
-  assert.deepEqual(m.efforts, ["on", "none"]);
+  // OFM 原本给 on/none，但 "on" 不是 magpie 梯队词会被丢掉，只剩 off 时
+  // dshModelLevels 直接返回 nil → DSH 里一个档位都没有。改用 high 代表「开」。
+  assert.deepEqual(m.efforts, ["high", "none"]);
   assert.deepEqual(m.variants, {
-    on: { reasoningEffort: "on" },
+    high: { reasoningEffort: "high" },
     none: { reasoningEffort: "none" },
   });
+  assert.deepEqual(m.vendorEfforts, []);
   // M3 远端没有 default_effort → 不设（保持服务端默认 = 不思考）
   assert.equal(m.defaultEffort, "");
   assert.equal(m.thinkingMode, "switchable");
@@ -294,18 +300,23 @@ test("minimax chat payload: M3.1 传 none → 仍退成 adaptive（服务端硬 
   assert.deepEqual(payload.thinking, { type: "adaptive" });
 });
 
-test("minimax chat payload: M3 none → thinking disabled；on → adaptive", () => {
+test("minimax chat payload: M3 none → thinking disabled；high（DSH 的「开」）→ adaptive 不带档位", () => {
   const off = buildAnthropicPayload("MiniMax-M3", {
     messages: [{ role: "user", content: "hi" }],
     reasoning_effort: "none",
   });
   assert.deepEqual(off.thinking, { type: "disabled" });
 
-  const on = buildAnthropicPayload("MiniMax-M3", {
-    messages: [{ role: "user", content: "hi" }],
-    reasoning_effort: "on",
-  });
-  assert.deepEqual(on.thinking, { type: "adaptive" });
+  // DSH 只能送梯队词，M3 的「开」用 high 表达；M3 没有远端档位，
+  // 所以只能发 {type:'adaptive'}，绝不能带 output_config.effort。
+  for (const effort of ["high", "on", "low", "max"]) {
+    const on = buildAnthropicPayload("MiniMax-M3", {
+      messages: [{ role: "user", content: "hi" }],
+      reasoning_effort: effort,
+    });
+    assert.deepEqual(on.thinking, { type: "adaptive" }, effort);
+    assert.equal(on.output_config, undefined, effort);
+  }
 });
 
 test("minimax chat payload: M3 不给档位 → 整个不发 thinking（= 不思考）", () => {

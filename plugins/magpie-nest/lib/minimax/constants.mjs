@@ -84,16 +84,33 @@ const FALLBACK_MODELS = [
 ];
 
 /**
- * 思考档位 id 列表（照 OFM minimaxReasoningInfo）：
- *   远端 effort_options 在前，switchable 再追加「开启思考 on / 关闭思考 none」。
- * ⚠️ 顺序 on 在 none 之前（DSH 按数组顺序渲染）。
- * ⚠️ forced_on 的模型绝不追加 none —— M3.1 会硬 400，M2.7 会被静默忽略
- *    （那会让用户以为关掉了、实际没关，比不给选项更糟）。
+ * magpie/dsh 认得的档位词（catalog.EffortRank + EffortAliases）。
+ *
+ * ⚠️ 插件声明的 `variants` 只有**键**会被 magpie 读走当档位名
+ * （internal/plugin/host.js:2357 `variants: Object.keys(...)`，值整块丢弃），
+ * 且键必须是这里的词之一，否则 catalog.Model.Efforts 为空 → DSH 里没有档位可选。
+ * 所以「开启思考 on」这种上游私有值不能当键，只能映射到梯队词（用 high 代表开）。
+ */
+const DSH_LEVELS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max", "light", "extra_high"]);
+
+/** 远端 effort_options 里 DSH 真的能表达的档位（丢掉 default 这类私有值）。 */
+export function effortOptionsOf(m) {
+  return (m.effortOptions ?? []).filter((e) => DSH_LEVELS.has(e));
+}
+
+/**
+ * DSH 里这个模型能选的思考档位（照 OFM minimaxReasoningInfo，但按 magpie 的规矩改键）：
+ *   - 远端档位在前（过滤掉 DSH 表达不了的）；
+ *   - switchable 且**没有可用档位**的（M3）只给「关 none / 开 high」两态 ——
+ *     OFM 原本给 on/none，但 "on" 不是梯队词，会被 magpie 丢掉，只剩 off，
+ *     而 dshModelLevels 对「只有一个 off」的模型直接返回 nil，等于一个档位都没有。
+ *   - forced_on 的模型绝不追加 none —— M3.1 会硬 400，M2.7 会被静默忽略
+ *     （那会让用户以为关掉了、实际没关，比不给选项更糟）。
  */
 export function effortIds(m) {
-  const ids = [...(m.effortOptions ?? [])];
+  const ids = effortOptionsOf(m);
   if (m.thinkingMode === "switchable") {
-    if (!ids.includes("on")) ids.push("on");
+    if (ids.length === 0) return ["high", "none"];
     if (!ids.includes("none")) ids.push("none");
   }
   return ids;
@@ -125,6 +142,8 @@ export function toModelRow(m) {
     isVl: m.supportsImage,
     isReasoning: thinks,
     efforts: ids,
+    // 远端真正下发的档位（可能为空）：chat.mjs 据此决定「关/开两态」还是「带档位的 adaptive」。
+    vendorEfforts: effortOptionsOf(m),
     defaultEffort: m.defaultEffort ?? "",
     alwaysThinks: m.thinkingMode === "forced_on",
     maxInput: m.contextWindow,
@@ -160,6 +179,7 @@ export function fallbackEntry(id) {
     isVl: false,
     isReasoning: false,
     efforts: [],
+    vendorEfforts: [],
     defaultEffort: "",
     alwaysThinks: false,
     maxInput: 200_000,

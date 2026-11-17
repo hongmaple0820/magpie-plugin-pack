@@ -73,13 +73,14 @@ test("cline constants: 实测端点与头族", () => {
   });
 });
 
-test("cline constants: 思考档位共用一张表，默认 High，Extra 映射 max", () => {
+test("cline constants: 思考档位共用一张表，默认 High，键是 wire id", () => {
   assert.deepEqual(EFFORT_IDS, ["none", "low", "medium", "high", "max"]);
   assert.equal(DEFAULT_REASONING_EFFORT, "high");
-  // 键是显示名（DSH 直接把它当标签），值是 wire id
-  assert.deepEqual(Object.keys(VARIANTS), ["None", "Low", "Medium", "High", "Extra"]);
-  assert.deepEqual(VARIANTS.Extra, { reasoningEffort: "max" });
-  assert.deepEqual(VARIANTS.None, { reasoningEffort: "none" });
+  // 键必须是 wire id：magpie 只取 Object.keys 当档位名（值被丢弃），
+  // 用显示名（None/Extra）会让 DSH 里一个档位都不显示。
+  assert.deepEqual(Object.keys(VARIANTS), ["none", "low", "medium", "high", "max"]);
+  assert.deepEqual(VARIANTS.max, { reasoningEffort: "max" });
+  assert.deepEqual(VARIANTS.none, { reasoningEffort: "none" });
   assert.equal(EFFORTS.length, 5);
 });
 

@@ -57,8 +57,8 @@ export const CLIENT_HEADERS = {
 
 /**
  * 思考档位：**远端不下发档位，所有模型共用这一张表**（OFM cline-product.ts）。
- * wire id → 显示名，附 OFM 实测 thinking 字符数：
- *   none 0 / low 67 / medium 379 / high 294 / max 1192
+ * wire id → OFM 的显示名，附实测 thinking 字符数：
+ *   none 0 / low 67 / medium 379 / high 294 / max 1192（max 在 OFM 里显示为 Extra）
  * 所以「不传 reasoning_effort」= 不思考，而不是 none。
  * ⚠️ 请求侧绝不做白名单校验：上游对不认识的档位静默忽略（'banana' → 200 且 0 思考）。
  */
@@ -73,9 +73,18 @@ export const EFFORTS = [
 /** OFM 明确声明默认 High（代价是思考 token 计入 completion_tokens）。 */
 export const DEFAULT_REASONING_EFFORT = "high";
 
-/** 共用的档位对象：键是显示名，值是 wire id（magpie 据此生成 reasoningEfforts 映射）。 */
+/**
+ * 共用的档位对象。
+ *
+ * ⚠️ 键必须是 **上线 wire id**，不能是显示名。magpie 只读 `Object.keys(variants)`
+ * 当模型的档位名（internal/plugin/host.js:2357），值被整块丢弃；档位名还要能被
+ * magpie 的梯队词认出（none/minimal/low/medium/high/xhigh/max，别名 light/
+ * extra_high），否则 catalog.Model.Efforts 为空 → DSH 里这个模型**一个档位都不显示**。
+ * 曾按显示名写（"None"/"Extra"），结果 cline 全部模型没有思考档位可选。
+ * 代价：显示名丢失，DSH 里 max 就显示 max（不是 Extra）。
+ */
 export const VARIANTS = Object.fromEntries(
-  EFFORTS.map(([wire, label]) => [label, { reasoningEffort: wire }]),
+  EFFORTS.map(([wire]) => [wire, { reasoningEffort: wire }]),
 );
 
 /** 档位 id 列表（wire 顺序）。 */

@@ -11,6 +11,12 @@
 
 export const NPM = "@ai-sdk/openai-compatible";
 
+/**
+ * magpie/dsh 认得的思考档位词（catalog.EffortRank + EffortAliases）。
+ * 模型表的档位必须落在这里面，否则 magpie 拿到的 efforts 为空、DSH 不显示档位。
+ */
+const DSH_LEVELS = new Set(["none", "minimal", "low", "medium", "high", "xhigh", "max", "light", "extra_high"]);
+
 // [wire id, 显示名, reasoningEffort 档位（可选）]
 const CN_MODELS = [
   ["auto", "Auto"],
@@ -193,14 +199,28 @@ export function productOf(id) {
   return PRODUCTS[id] ?? null;
 }
 
-/** 模型行 → OpenCode/magpie 模型表。未知名会在 loader 里被 404 拦下。 */
+/**
+ * 模型行 → OpenCode/magpie 模型表。未知名会在 loader 里被 404 拦下。
+ *
+ * ⚠️ `variants` 必须是**对象、键是档位词**：magpie 只取 `Object.keys(variants)`
+ * 当模型的思考档位名（internal/plugin/host.js:2357，值整块丢弃）。曾经直接传
+ * 字符串数组 `["low","high","max"]`，Object.keys 出来的是 ["0","1","2"]，
+ * 一个梯队词都不认 → workbuddy 这两个渠道在 DSH 里**一个思考档位都没有**
+ * （cordis.patch.yml 里那批 workbuddy/glm-5.3 等条目确实没有 reasoningEfforts）。
+ */
 export function modelRows(product) {
   const out = {};
   for (const [id, name, efforts] of product.models) {
+    const levels = Array.isArray(efforts) ? efforts.filter((e) => DSH_LEVELS.has(e)) : [];
     out[id] = {
       name,
       tool_call: true,
-      ...(Array.isArray(efforts) && efforts.length ? { reasoning: true, variants: efforts } : {}),
+      ...(levels.length
+        ? {
+            reasoning: true,
+            variants: Object.fromEntries(levels.map((e) => [e, { reasoningEffort: e }])),
+          }
+        : {}),
     };
   }
   return out;

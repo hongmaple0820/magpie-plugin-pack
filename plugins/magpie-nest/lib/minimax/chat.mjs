@@ -143,29 +143,51 @@ export function buildAnthropicMessages(openaiMessages) {
 }
 
 // ---------- thinking 决策表 ----------
-
+//
+// DSH 只会送来 magpie 梯队词（none/low/medium/high/xhigh/max）：
+// 插件声明的 variants 键是这些词，值被 magpie 丢弃，所以「开/关」两态模型的
+// 「开」只能借用 high 这个键，这里再翻译回上游要的形态。
+//
+//   effort 值        M3.1（adaptive 强制）        M3（switchable，无档位）      M2.7（forced_on）
+//   undefined        thinking adaptive            不发（=不思考）               不发
+//   none             thinking adaptive（disabled 会 400）  thinking disabled    不发
+//   low..max         adaptive + output_config     thinking adaptive（不带档位）  不发
 function thinkingPatch(modelKey, effort) {
   const value = typeof effort === "string" && effort.trim() !== "" ? effort.trim() : undefined;
   const adaptiveOnly = modelKey.startsWith(ADAPTIVE_ONLY_PREFIX);
+  const entry = modelEntry(modelKey);
+  const hasEffortOptions = (entry?.vendorEfforts ?? []).length > 0;
+  const forcedOn = entry?.alwaysThinks === true;
 
-  if (value === "none") {
+  if (forcedOn && !adaptiveOnly && !hasEffortOptions) {
+    // M2.7 系：强制思考且没有档位 —— 不发 thinking，也不能给 none（上游会静默忽略）。
+    return undefined;
+  }
+
+  const wantsOff = value === "none";
+  if (wantsOff) {
     // M3.1 传 disabled 会硬 400（2013），只能退回 adaptive。
     return adaptiveOnly ? { thinking: { type: "adaptive" } } : { thinking: { type: "disabled" } };
   }
-  if (value === "on") return { thinking: { type: "adaptive" } };
 
-  if (adaptiveOnly) {
-    // M3.1 强制 adaptive；档位走根级 output_config.effort。
+  if (hasEffortOptions) {
+    // 有真档位：adaptive + 根级 output_config（⚠️ 不是塞进 thinking 里）。
     return {
       thinking: { type: "adaptive" },
       ...(value !== undefined ? { outputConfig: { effort: value } } : {}),
     };
   }
-  if (value !== undefined) {
-    // 有档位：adaptive + 根级 output_config（⚠️ 不是塞进 thinking 里）。
-    return { thinking: { type: "adaptive" }, outputConfig: { effort: value } };
+
+  if (adaptiveOnly) {
+    // M3.1 强制 adaptive，远端没有档位（理论上不会走到，防御性保留）。
+    return { thinking: { type: "adaptive" } };
   }
-  // M3 不发 thinking = 不思考（服务端默认）；M2.7 系 forced_on 也不发。
+
+  if (value !== undefined) {
+    // switchable 无档位（M3）：任何表态都只是「开」，不带 output_config。
+    return { thinking: { type: "adaptive" } };
+  }
+  // M3 不发 thinking = 不思考（服务端默认）。
   return undefined;
 }
 
