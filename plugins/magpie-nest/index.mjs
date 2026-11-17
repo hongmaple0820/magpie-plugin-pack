@@ -1,4 +1,4 @@
-// One package, twenty-five providers.
+// One package, twenty-six providers.
 //
 // magpie runs every exported function as its own plugin (the qoder pattern),
 // so each provider below keeps its own failure isolation, its own auth hook
