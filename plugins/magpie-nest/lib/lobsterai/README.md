@@ -43,7 +43,10 @@ magpie plugin login lobsterai
 | Doubao Seed 2.0 Code | `doubao-seed-2-0-code-preview-260215` |
 | GLM-5.2 / 5.1 / 5V Turbo / 5 | `glm-5.2` / `glm-5.1` / `glm-5v-turbo` / `glm-5` |
 
-上游没有已知的模型目录端点，所以清单是静态的。
+静态表是某一天的快照；账号的真实清单由 `lib/lobsterai/catalog.mjs` 动态拉取
+`GET /api/models/available`（带 keyfrom 身份 query + 两个 `X-LobsterAI-Client-*` 头，
+按账号缓存 10 分钟；拉不到就退回这张静态表）。目录端点同样受能力头过滤：
+不带 `kimi-k3-agentic-v1` 时响应里**永久缺 kimi-k3**（实测 25 vs 26 个模型）。
 
 ## 每日签到
 

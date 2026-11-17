@@ -23,6 +23,7 @@ import {
 } from "./login.mjs";
 import { chat } from "./bridge.mjs";
 import { checkinOf } from "./checkin.mjs";
+import { fetchCatalog } from "./catalog.mjs";
 import { LobsteraiError } from "./http.mjs";
 
 /** Refresh this long before the token's own expiry. */
@@ -132,9 +133,37 @@ export const LobsteraiPlugin = async () => ({
 
   provider: {
     id: ID,
-    // No catalog endpoint is known, so the list stays the one config declared.
-    async models(provider) {
-      return provider?.models ?? modelRows();
+    // The gateway is the authority on the model set: /api/models/available
+    // answers the account's real catalog (the two X-LobsterAI-Client-* headers
+    // gate it -- see catalog.mjs). When it cannot be read, the static table
+    // config declared stays, so a failed catalog never empties the picker.
+    async models(provider, { auth } = {}) {
+      const fallback = provider?.models ?? modelRows();
+      const creds = auth ? credsOf(auth) : undefined;
+      if (!creds) return fallback;
+      let catalog;
+      try {
+        catalog = await fetchCatalog(creds);
+      } catch {
+        return fallback;
+      }
+      if (!catalog?.length) return fallback;
+      const base = provider?.models ?? {};
+      const out = {};
+      for (const row of catalog) {
+        if (out[row.id]) continue;
+        out[row.id] = {
+          // The static row keeps its tuned flags; the catalog only adds rows
+          // and overrides what the server actually said.
+          ...(base[row.id] ?? {}),
+          id: row.id,
+          name: row.name || row.id,
+          ...(row.attachment !== undefined ? { attachment: row.attachment } : {}),
+          ...(row.reasoning !== undefined ? { reasoning: row.reasoning } : {}),
+          tool_call: true,
+        };
+      }
+      return out;
     },
   },
 
