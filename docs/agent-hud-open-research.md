@@ -65,7 +65,7 @@ pnpm monorepo + Rust workspace，src/ 下：
   Codex 用 DeepSeek……插件系统在 internal/plugin、internal/pluginrt、internal/agentplug，兼容 OpenCode v1 插件
   （config/auth/provider 三段）。有自己的 internal/sessions、internal/stats。
 - F:/maple/magpie-plugin-pack（本目录）是给 magpie 的 OpenCode v1 插件包「鹊巢 magpie-nest」：
-  plugins/magpie-nest/index.mjs 只导出 25 个插件函数，每个渠道在 lib/<id>/，test/pack-install.test.mjs 是装载回归。
+  plugins/magpie-nest/index.mjs 只导出 26 个插件函数，每个渠道在 lib/<id>/，test/pack-install.test.mjs 是装载回归。
   新增渠道 = lib 新目录 + 入口一行 export + 测试。
 - 若做「magpie 上 HUD」，最可能路线是给 agent-hud-open 新增 magpie 客户端适配器（读 magpie 的
   sessions/stats 数据），并视情况让 magpie 加载 observer 脚本上报实时状态。

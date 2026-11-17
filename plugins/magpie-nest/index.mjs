@@ -39,3 +39,4 @@ export { RaccoonPlugin } from "./lib/raccoon/index.mjs";
 export { TraeCnPlugin } from "./lib/trae/index.mjs";
 export { TraeGlobalPlugin } from "./lib/trae/index.mjs";
 export { ZaiPlugin } from "./lib/zai/index.mjs";
+export { MiniMaxPlugin } from "./lib/minimax/index.mjs";
