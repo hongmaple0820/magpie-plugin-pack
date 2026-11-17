@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 合订包的装载回归（原 inkstone install.test.mjs 的合订版）。
  *
  * 覆盖合订形态下最容易坏的四件事：
@@ -24,9 +24,10 @@ const ok = (name) => {
   console.log(`✓ ${name}`);
 };
 
-// 26 个渠道一个都不能少，一个都不能多（多出的导出函数会被宿主当插件执行）。
+// 27 个渠道一个都不能少，一个都不能多（多出的导出函数会被宿主当插件执行）。
 const EXPECTED = [
   "AgnesPlugin", "AutoClawCnPlugin", "AutoClawPlugin", "ChatGptWebPlugin",
+  "ClinePlugin",
   "CodeBuddyPlugin", "DeepSeekWebPlugin", "DoubaoPlugin", "GeminiPlugin",
   "GlmPlugin", "InkstoneAuthPlugin", "KimiPlugin", "LobsteraiPlugin",
   "LoomyPlugin", "MiniMaxPlugin", "OpencodeFreePlugin", "PerplexityPlugin", "QoderCnPlugin",
@@ -75,7 +76,7 @@ async function smoke(dir, label) {
   assert.ok(fs.existsSync(file), `入口不存在: ${rel}`);
   const mod = await import(pathToFileURL(file).href);
 
-  // 合订不变量：恰好 26 个插件函数，名字一个不差
+  // 合订不变量：恰好 27 个插件函数，名字一个不差
   const fns = Object.entries(mod).filter(([, value]) => typeof value === "function");
   assert.deepEqual(
     fns.map(([name]) => name).sort(),

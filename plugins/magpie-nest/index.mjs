@@ -1,4 +1,4 @@
-// One package, twenty-six providers.
+// One package, twenty-seven providers.
 //
 // magpie runs every exported function as its own plugin (the qoder pattern),
 // so each provider below keeps its own failure isolation, its own auth hook
@@ -21,6 +21,7 @@ export { CodeBuddyPlugin } from "./lib/buddy/index.mjs";
 export { WorkBuddyAiPlugin } from "./lib/buddy/index.mjs";
 export { WorkBuddyPlugin } from "./lib/buddy/index.mjs";
 export { ChatGptWebPlugin } from "./lib/chatgpt-web/index.mjs";
+export { ClinePlugin } from "./lib/cline/index.mjs";
 export { DeepSeekWebPlugin } from "./lib/deepseek-web/index.mjs";
 export { DoubaoPlugin } from "./lib/doubao/index.mjs";
 export { GeminiPlugin } from "./lib/gemini/index.mjs";
