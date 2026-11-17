@@ -9,8 +9,9 @@
 // Credentials are pasted from a logged-in IDE: the access token is sent in
 // four headers at once, and uid / machineId / deviceId are the device
 // identity the gateway checks — without uid the request is rejected
-// outright. The channel (function) is the escape hatch: solo_agent covers
-// the widest model set by default.
+// outright, and identity.mjs derives the other two from the uid when the
+// paste did not carry them. The channel (function) is the escape hatch:
+// solo_agent covers the widest model set by default.
 // (F:/maple/ChatLink/src/main/providers/builtin/trae.ts:6-20,
 //  F:/maple/ChatLink/src/main/proxy/adapters/trae.ts:117-228,360-469)
 
@@ -23,6 +24,7 @@ import {
   CHAT_PATH,
 } from "./constants.mjs";
 import { fetchCatalog, pairFor } from "./catalog.mjs";
+import { resolveIdentity } from "./identity.mjs";
 
 function tokenOf(auth) {
   const value = auth?.key ?? auth?.access ?? auth?.token;
@@ -31,10 +33,20 @@ function tokenOf(auth) {
 
 function credsOf(auth) {
   const meta = auth?.metadata ?? {};
+  const uid = String(meta?.uid ?? auth?.uid ?? "").trim();
+  // Missing identity is derived from the uid, never left blank: the gateway
+  // reads an empty X-Machine-Id as a device that matches no account, and two
+  // different randoms per request would read as a device migration (which
+  // TRAE answers by demanding a new sign-in).
+  const identity = resolveIdentity(
+    uid,
+    String(meta?.machineId ?? auth?.machineId ?? "").trim(),
+    String(meta?.deviceId ?? auth?.deviceId ?? "").trim(),
+  );
   return {
-    uid: String(meta?.uid ?? auth?.uid ?? "").trim(),
-    machineId: String(meta?.machineId ?? auth?.machineId ?? "").trim(),
-    deviceId: String(meta?.deviceId ?? auth?.deviceId ?? "").trim(),
+    uid,
+    machineId: identity.machineId,
+    deviceId: identity.deviceId,
     channel: String(meta?.channel ?? auth?.channel ?? "").trim(),
     api: String(meta?.api ?? auth?.api ?? "").trim(),
   };
@@ -335,15 +347,15 @@ async function drain(upstream, model) {
 const PROMPTS = {
   "trae-cn": [
     { key: "uid", type: "text", message: "UID（必填，缺 uid 网关直接拒绝）", placeholder: "IDE DevTools 请求头里的 X-Uid" },
-    { key: "machineId", type: "text", message: "Machine ID（可选）", placeholder: "X-Machine-Id" },
-    { key: "deviceId", type: "text", message: "Device ID（可选）", placeholder: "X-Device-Id" },
+    { key: "machineId", type: "text", message: "Machine ID（可选；留空则从 UID 稳定派生 32 位 hex）", placeholder: "X-Machine-Id，留空即可" },
+    { key: "deviceId", type: "text", message: "Device ID（可选；留空则从 UID 稳定派生 15 位数字）", placeholder: "X-Device-Id，留空即可" },
     { key: "channel", type: "text", message: "Routing channel（可选）", placeholder: "默认 solo_agent；模型在流里报 4001 时换 solo_work_lite / solo_coder" },
     { key: "api", type: "text", message: "API 域覆盖（可选）", placeholder: "默认 https://trae-api-cn.mchost.guru" },
   ],
   "trae-global": [
     { key: "uid", type: "text", message: "UID（必填，缺 uid 网关直接拒绝）", placeholder: "IDE DevTools 请求头里的 X-Uid" },
-    { key: "machineId", type: "text", message: "Machine ID（可选）", placeholder: "X-Machine-Id" },
-    { key: "deviceId", type: "text", message: "Device ID（可选）", placeholder: "X-Device-Id" },
+    { key: "machineId", type: "text", message: "Machine ID（可选；留空则从 UID 稳定派生 32 位 hex）", placeholder: "X-Machine-Id，留空即可" },
+    { key: "deviceId", type: "text", message: "Device ID（可选；留空则从 UID 稳定派生 15 位数字）", placeholder: "X-Device-Id，留空即可" },
     { key: "channel", type: "text", message: "Routing channel（可选）", placeholder: "默认 solo_agent；模型在流里报 4001 时换 solo_work_lite / solo_coder" },
     { key: "api", type: "text", message: "API 域覆盖（可选）", placeholder: "默认 https://coresg-normal.trae.ai（SG）；US 账户填 https://coreva-normal.trae.ai" },
   ],

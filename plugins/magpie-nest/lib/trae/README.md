@@ -42,7 +42,7 @@ TRAE 的 agent 端点 `/api/agent/v3/llm_utils_chat` **两个方向都不是 Ope
 
 ## 鉴权方式
 
-登录方式为 `type:"api"` 粘贴：主框粘贴 IDE 令牌（Cloud-IDE-JWT），随后填写设备身份字段。
+登录方式为 `type:"api"` 粘贴：主框粘贴 IDE 令牌（Cloud-IDE-JWT）+ `X-Uid`；设备身份两个字段可以留空，插件会从 uid 稳定派生（见下）。
 **目前没有接浏览器一键登录**：社区插件已实现可自动化的 OAuth 流程
 （`@magpie-community/opencode-trae-auth` 的 `browserSignIn`，`index.mjs:3834`，授权页回调
 127.0.0.1 拿 JWT + refresh token），但移植它需要本地回调服务器与设备密钥交换（该文件 3843 行），
@@ -55,14 +55,18 @@ TRAE 的 agent 端点 `/api/agent/v3/llm_utils_chat` **两个方向都不是 Ope
 3. 从**请求头**复制：
    - 令牌：`Authorization: Cloud-IDE-JWT …` 里 `Cloud-IDE-JWT ` 之后的部分（粘主框）
    - `X-Uid`（必填）
-   - `X-Machine-Id`、`X-Device-Id`（可选但建议填）
+   - `X-Machine-Id`、`X-Device-Id`（可选：留空则由 `identity.mjs` 从 uid 派生，派生值恒定不变）
 
 ### 必需头（`constants.mjs` 的 `clientHeaders`）
 
 - `Authorization: Cloud-IDE-JWT <token>`、`X-Cloudide-Token: <token>`、`X-Ide-Token: <token>` ——
   令牌要同时发在四处，网关独立校验（ChatLink `adapters/trae.ts:286-319`）
 - `X-Uid` —— **缺 uid 直接被拒**（ChatLink `providers/builtin/trae.ts:11-14`）
-- `X-Machine-Id` / `X-Device-Id` —— 设备身份，新设备缺 machineId 时网关更严格
+- `X-Machine-Id` / `X-Device-Id` —— 设备身份。粘贴时没填就由 `lib/trae/identity.mjs` 从 uid 派生：
+  `X-Device-Id` 是 15 位数字（同 ChatLink `checkin/trae.ts:85` 的 `deriveDeviceId15`），
+  `X-Machine-Id` 是 32 位 hex，都按 `<salt>:<uid>` 做 sha256 流生成。
+  派生保证**同一账号永远同一身份**：既不会发出空值（网关会把空 `X-Machine-Id` 读成「对不上任何设备」），
+  也不会每次请求换一个（那等于换机，TRAE 会要求重新登录）。
 - `X-App-Id`（`6eefa01c-1036-4c7e-9ca5-d891f63bfcd8`）、`X-Ide-Version` 家族、`X-Device-*` 家族
 
 ## 两版差异与坑
