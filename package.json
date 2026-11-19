@@ -2,7 +2,7 @@
   "name": "magpie-plugin-pack",
   "version": "0.2.0",
   "private": true,
-  "description": "鹊巢 (magpie-nest) — 27 web-session AI channels for magpie / OpenCode in one install. Vendors with a China edition and an international edition ship both.",
+  "description": "Two magpie plugins: magpie-nest — 27 web-session AI channels in one install; magpie-hud — a desktop HUD for the local AI coding agents (panel + five MCP tools).",
   "license": "MIT",
   "workspaces": [
     "plugins/*"

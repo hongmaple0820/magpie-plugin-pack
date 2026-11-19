@@ -1,16 +1,25 @@
 <p align="center"><img src="logo.svg" width="128" alt="鹊巢 logo"/></p>
 
-<h1 align="center">鹊巢 · magpie-nest</h1>
+<h1 align="center">鹊巢 · magpie-plugin-pack</h1>
 
-<p align="center">一个包，27 家网页版 AI 渠道——一次安装，各自登录；有国内外双版本的厂商两版都收</p>
+<p align="center">两个插件：27 家网页版 AI 渠道（magpie-nest）+ 本机 AI coding agent 的桌面 HUD（magpie-hud）</p>
 
 <p align="center"><a href="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml"><img src="https://github.com/hongmaple0820/magpie-plugin-pack/actions/workflows/test.yml/badge.svg" alt="tests"/></a></p>
 
-本仓库（magpie-plugin-pack）发布一个合订包 **`magpie-nest`**：标准的 OpenCode v1 插件包（`config` / `auth` / `provider`），入口导出 27 个插件函数，宿主把每个函数当独立插件运行——**一次安装，27 个渠道各自登录、互不影响**。多账号、故障切换、额度展示、自动更新都由 magpie 负责。
+本仓库（magpie-plugin-pack）发布**两个互相独立的插件**，都在 `plugins/` 下、都是标准的 OpenCode v1 插件包，可以只装一个：
+
+| 插件 | 是什么 | 安装 |
+| --- | --- | --- |
+| **`magpie-nest`** | 一个合订包，27 家网页版 AI 渠道（`config` / `auth` / `provider`）；入口导出 27 个插件函数，宿主把每个函数当独立插件运行——**一次安装，27 个渠道各自登录、互不影响** | `magpie plugin add <仓库>/plugins/magpie-nest` |
+| **`magpie-hud`** | 本机 AI coding agent 的桌面 HUD：一个插件两半——**面板**（会话、厂商额度、用量花费、消息投递链）+ **五个 MCP 工具**（`list_sessions` / `send_message` / `start_session` / `get_message` / `list_quotas`）；Windows 上装好即拉起常驻桌面窗口 | `magpie plugin add <仓库>/plugins/magpie-hud` |
+
+多账号、故障切换、额度展示、自动更新都由 magpie 负责。
 
 > English: see [README.en.md](./README.en.md)。
 
-## 包含的渠道
+## 包含的插件
+
+### magpie-nest：27 家网页版 AI 渠道
 
 全部位于 [plugins/magpie-nest](./plugins/magpie-nest)。渠道代码在 `lib/<id>/`，协议细节与登录字段见各 `lib/<id>/README.md`。
 
@@ -41,20 +50,23 @@
 | `codebuddy` | 腾讯 CodeBuddy **中国版**（copilot.tencent.com）：与中国版 WorkBuddy 同协议不同产品 | OAuth 一键登录，或粘贴访问令牌 |
 | `autoclaw` | 智谱 AutoClaw **国际版**（autoglm.ai）：4 个模型，官方客户端指纹头 | OAuth 一键登录（含滑块引导），或粘贴令牌 |
 | `autoclaw-cn` | 智谱 AutoClaw **国内版**（zhipuai.cn）：4 个模型 | 手机验证码登录，或粘贴令牌 |
+| `cline` | Cline：OpenAI 兼容端点，模型目录动态取远端（免费 / 推荐 / Cline Pass 三段，实测免费 3 条） | 浏览器设备码 OAuth（推荐），或粘贴 `workos:` 令牌 |
+| `minimax` | MiniMax Code（中国版）：Anthropic Messages 端点，实测 4 个模型（M3.1-Flash / M3 / M2.7-highspeed / M2.7） | 设备码 OAuth（唯一方式） |
 
 > **国内外双版本都收**：Qwen（`qwen-ai` / `qwen-web`）、智谱（`zai-web` / `glm`）、Qoder、TRAE、腾讯 WorkBuddy、智谱 AutoClaw 各有中国版与国际版，两版是厂商侧**互不通用的账号体系**，所以各占一个 provider id，各自登录、各自计费。
 >
 > ⚠️ 这些渠道全部是**逆向网页协议**，非官方 API：上游改版随时可能失效；账号有限流/封禁风险，勿用主力号。与既有社区插件同 id 时（`inkstone`/`deepseek-web`/`chatgpt-web`/`qoder`/`qoder-cn`/`trae-cn`/`trae-global`/`workbuddy`/`workbuddy-ai`/`autoclaw`/`autoclaw-cn`），用 `magpie plugin use` 指定归属，本包不抢已登录的账号：`magpie plugin use <插件> <provider id>`。
 
-## 安装（一条命令）
+## 安装
 
 ```powershell
 git clone https://github.com/hongmaple0820/magpie-plugin-pack.git
-magpie plugin add "F:\路径\magpie-plugin-pack\plugins\magpie-nest"
+magpie plugin add "F:\路径\magpie-plugin-pack\plugins\magpie-nest"   # 27 渠道合订
+magpie plugin add "F:\路径\magpie-plugin-pack\plugins\magpie-hud"    # 桌面 HUD + 5 个 MCP 工具
 ```
 
-- 或在 magpie 应用里：插件 → 添加插件 → 填上面的文件夹路径。
-- 仓库根的 `install.ps1` / `install.sh` 仍可用（遍历 `plugins/*/`，对每个目录执行 `magpie plugin add`），重复执行安全。
+- 或在 magpie 应用里：插件 → 添加插件 → 填上面的文件夹路径。两个各装各的，装一个不影响另一个。
+- 仓库根的 `install.ps1` / `install.sh` 一条命令把 `plugins/` 下两个插件都加进去（重复执行安全）。
 
 装好后在「插件 → 已安装」里打开需要的渠道、登录即可；不登录的渠道完全不影响其他渠道。
 
@@ -99,6 +111,16 @@ magpie plugin                    # 看插件 / 账号 / 模型列表
 
 其它渠道见 `plugins/magpie-nest/lib/<id>/README.md`。
 
+## magpie-hud：本机 AI coding agent 的桌面 HUD
+
+一个插件两半，数据引擎（会话扫描 / journal / 额度读取）共用：
+
+- **面板半**（给人看）：每客户端一张额度环卡（最满窗口百分比 + 每窗口进度/重置倒计时 + 24h 走势 + 烧录率）、24h/7d/30d 用量（输入/输出/token/花费，按 provider 明细），**对不上价的请求单列 `unpriced`，不假装完整**；会话列表（客户端色标 + 状态 pill，默认只列**已装**的 agent）；消息投递与 15 秒提醒卡。插件的「页面」与 magpie 的「面板」两个呈现位都能用。
+- **工具半**（给 agent）：五个 MCP 工具对所有能接 MCP 的 agent 可用——`list_sessions` / `send_message` / `start_session` / `get_message` / `list_quotas`。
+- **桌面 HUD**（Windows）：装插件即自动拉起一个常驻桌面的原生窗口。默认 **Rust + WebView2 壳 + 真页面**（`desktop-rust/`，界面和面板共用同一套 token，一条 52px 状态栏，双击展开：在跑会话、待批审批的批准/拒绝、汇总）；**Go + Win32 GDI 手绘版**（`desktop-native/`）作兜底，不依赖 WebView2；两种都缺则静默跳过，页面功能不受影响。
+- 能**替你答**：审批与提问是 agent 客户端进程内存里的事，插件带一小段装进 DSH 的通道插件（设置页「回话通道」一行点「装到 DSH」，重启 DSH 生效），把 approval / user-question 抢过来，等你从面板侧作答。
+- 自述**平台边界**：Windows 全功能；macOS / Linux 的桌面窗口还没做（占位退出，插件自动跳过），页面与 MCP 工具照常可用。详见 [plugins/magpie-hud/README.md](./plugins/magpie-hud/README.md)。
+
 ## 更新
 
 未发布 npm 前，更新 = `git pull` 拉最新代码：
@@ -109,20 +131,20 @@ git pull
 ```
 
 - 终端 CLI：什么都不用做，每条命令按文件夹当前内容加载。
-- magpie 应用（GUI）：到「插件 → 已安装」把合订包**关掉再打开**，或重启 magpie。
+- magpie 应用（GUI）：到「插件 → 已安装」把每个插件**关掉再打开**，或重启 magpie。
 
 ## 测试
 
-仓库根一条命令跑完全部渠道（跨平台，Windows 也能跑）：
+仓库根一条命令跑完两个插件的全部测试（跨平台，Windows 也能跑）：
 
 ```bash
 npm test
 # 等价于 node scripts/test-all.mjs —— 遍历 plugins/*/package.json 跑包内 npm test
 ```
 
-合订包内 `test/pack-install.test.mjs` 是装载回归：入口恰好导出 27 个插件函数、`files` 白名单复制后整包可装载（含 deepseek 的 wasm 资产）。
+各包的装载回归都在 `test/pack-install.test.mjs`：`magpie-nest` 入口恰好导出 27 个插件函数、`magpie-hud` 入口只导出一个插件函数，`files` 白名单复制后整包可装载（含 deepseek 的 wasm 资产、hud 的前端与发布 exe）。
 
-GitHub Actions（[.github/workflows/test.yml](./.github/workflows/test.yml)）在每次 push / PR 自动在 **ubuntu + windows** 双平台跑全部测试。magpie-hud 声明了运行时依赖（fzstd），CI 先 `npm ci` 再跑测试。
+GitHub Actions（[.github/workflows/test.yml](./.github/workflows/test.yml)）在每次 push / PR 自动在 **ubuntu + windows** 双平台跑全部测试。`magpie-hud` 声明了运行时依赖（fzstd，解 DSH 的 `.jsonl.zstd` 转录），CI 先 `npm ci` 再跑测试；`magpie-nest` 仍零依赖。
 
 ## 目录结构
 
@@ -130,27 +152,36 @@ GitHub Actions（[.github/workflows/test.yml](./.github/workflows/test.yml)）�
 magpie-plugin-pack/
 ├── README.md / README.en.md      # 中英说明（本文件）
 ├── LICENSE                       # MIT
-├── install.ps1 / install.sh      # 一键安装
+├── install.ps1 / install.sh      # 一键安装（遍历 plugins/*，两个都装）
 ├── scripts/test-all.mjs          # 跑全部测试
 ├── .github/workflows/test.yml    # CI：push/PR 双平台测试
 └── plugins/
-    └── magpie-nest/     # 唯一的包：27 渠道合订
-        ├── index.mjs             # 只导出 27 个插件函数（宿主各跑各的）
-        ├── lib/<id>/             # 各渠道协议实现 + README（inkstone 在 lib/inkstone/）
-        ├── assets/               # deepseek-web 的 sha3 wasm
-        ├── test/                 # 164 个单测
-        └── package.json
+    ├── magpie-nest/     # 27 渠道合订
+    │   ├── index.mjs             # 只导出 27 个插件函数（宿主各跑各的）
+    │   ├── lib/<id>/             # 各渠道协议实现 + README（inkstone 在 lib/inkstone/）
+    │   ├── assets/               # deepseek-web 的 sha3 wasm
+    │   ├── test/                 # 单测
+    │   └── package.json          # 零依赖
+    └── magpie-hud/      # 桌面 HUD：面板 + 5 个 MCP 工具
+        ├── index.mjs             # 只导出一个插件函数（见 test/entry.test.mjs 守卫）
+        ├── lib/                  # 数据引擎（会话/journal/额度）+ pageservice + 5 工具
+        ├── page/ webapp/         # 面板页与静态资源（零依赖、零构建）
+        ├── desktop-rust/         # Windows 原生窗口壳（Rust + WebView2，默认）
+        ├── desktop-native/       # Windows 兜底壳（Go + Win32 GDI，不依赖 WebView2）
+        ├── test/                 # 单测
+        └── package.json          # 运行时依赖 fzstd（解 DSH 转录的 zstd）
 ```
 
 约定：
 
-- **入口模块只导出插件函数**：宿主会把入口里每个导出函数都当插件执行，多导出一个辅助函数就会在加载时崩溃。辅助代码一律放 `lib/<id>/`。
-- 渠道之间零共享状态，新增渠道 = `lib/` 下新目录 + 入口加一行 export + 一份测试。
-- 旧的单插件形态已并入本包（git 历史里仍可查）。
+- **入口模块只导出插件函数**：宿主会把入口里每个导出函数都当插件执行，多导出一个辅助函数就会在加载时崩溃。辅助代码一律放 `lib/`。
+- `magpie-nest` 渠道之间零共享状态，新增渠道 = `lib/` 下新目录 + 入口加一行 export + 一份测试。
+- 两个插件**互不依赖**：各自有 package.json，可单独安装、单独发布、单独停用；`magpie-hud` 的依赖只有 fzstd，且动态导入降级，缺包时面板明示「引擎不可用」而工具半照常工作。
+- 旧的单插件形态已并入 `magpie-nest`（git 历史里仍可查）。
 
 ## 发布（后续推 npm）
 
-单包发布：
+两个包各自发布：
 
 ```bash
 cd plugins/magpie-nest
