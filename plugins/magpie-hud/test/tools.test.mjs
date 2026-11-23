@@ -113,6 +113,13 @@ test("list_sessions scans claude and codex transcripts under HOME", async () => 
       JSON.stringify({ type: "PLANNER_RESPONSE", step_index: 2, created_at: "2026-11-11T10:01:00Z", content: "ag answer" }) + "\n"
   );
   process.env.MAGPIE_AGENTS_HOME = home;
+  // DSH_HOME 会被 DSH 宿主进程带进来（指向真实 ~/.dsh）：不钉死到 fixture，
+  // 下面的 dsh fixture 就永远扫不到（dshRoot() 认 DSH_HOME 优先）。
+  const savedEnv = { dshHome: process.env.DSH_HOME, codexHome: process.env.CODEX_HOME, claudeCfg: process.env.CLAUDE_CONFIG_DIR, gemini: process.env.GEMINI_CLI_HOME };
+  process.env.DSH_HOME = join(home, ".dsh");
+  delete process.env.CODEX_HOME;
+  delete process.env.CLAUDE_CONFIG_DIR;
+  delete process.env.GEMINI_CLI_HOME;
   try {
     const hooks = { tool: AGENTS_TOOLS };
     const out = JSON.parse(await hooks.tool.list_sessions.execute({}, {}));
@@ -138,7 +145,14 @@ test("list_sessions scans claude and codex transcripts under HOME", async () => 
     assert.equal(codex.id, "sess-codex-1");
     assert.equal(codex.title, "write tests");
     assert.equal(codex.project, "F:/maple/other");
-    assert.equal(codex.state, "unknown", "codex 只有 mtime，不该猜在跑");
+    // v8：codex 有了事件真值（lib/truth/codex-collect.mjs 折叠 task_started/
+    // task_complete/工具调用），不再只有 mtime 猜测。这个 fixture 是
+    // session_meta + 一条 user 消息（无 task_started）——按事件语义是
+    // working（user-input-pending-turn），且来源可证伪。
+    assert.equal(codex.source.kind, "transcript");
+    assert.equal(codex.source.verified, true);
+    assert.ok(codex.source.rule, "codex 状态要能说出是哪条规则判的");
+    assert.equal(codex.state, "running", "user 消息后未起 turn：等起跑，按事件判 running");
     assert.ok(out.startFolders.claude, "claude startFolders offered");
     assert.deepEqual(out.startFolders.claude.folders, ["F--maple-demo"]);
     assert.equal(out.startFolders.claude.withoutFolder, true);
@@ -157,9 +171,10 @@ test("list_sessions scans claude and codex transcripts under HOME", async () => 
     assert.equal(dshRow.presence, null, "dsh 没有签到通道，presence 只能是 null");
     // 跨客户端不变式（v7 §5 P1 出口）：凡是敢给非 unknown 的 phase，就必须有能被证伪的事件证据。
     // mtime / registry 一律只能 unknown——这条一旦破了，页面又会开始拿文件时间冒充「在跑」。
+    // v8：codex 的事件真值来源是 transcript（codex-collect.mjs），与 DSH 的 events/tap 同类。
     for (const s of out.sessions) {
       if (s.phase === "unknown") continue;
-      assert.ok(["events", "tap"].includes(s.source.kind), `${s.client}/${s.id} 用 ${s.source.kind} 给出了 ${s.phase}`);
+      assert.ok(["events", "tap", "transcript"].includes(s.source.kind), `${s.client}/${s.id} 用 ${s.source.kind} 给出了 ${s.phase}`);
       assert.equal(s.source.verified, true, `${s.client}/${s.id} 的 ${s.phase} 没有可证来源`);
     }
     const zstdRow = dshRows.find((s) => s.id === "dsh-zstd-1");
@@ -179,6 +194,10 @@ test("list_sessions scans claude and codex transcripts under HOME", async () => 
     assert.ok(out.startFolders.codex, "codex startFolders offered");
     assert.deepEqual(out.startFolders.codex.folders, ["F:/maple/other"]);
   } finally {
+    if (savedEnv.dshHome == null) delete process.env.DSH_HOME; else process.env.DSH_HOME = savedEnv.dshHome;
+    if (savedEnv.codexHome == null) delete process.env.CODEX_HOME; else process.env.CODEX_HOME = savedEnv.codexHome;
+    if (savedEnv.claudeCfg == null) delete process.env.CLAUDE_CONFIG_DIR; else process.env.CLAUDE_CONFIG_DIR = savedEnv.claudeCfg;
+    if (savedEnv.gemini == null) delete process.env.GEMINI_CLI_HOME; else process.env.GEMINI_CLI_HOME = savedEnv.gemini;
     delete process.env.MAGPIE_AGENTS_HOME;
     rmSync(home, { recursive: true, force: true });
   }
@@ -188,7 +207,9 @@ test("send_message and get_message answer instead of a milestone message", async
   // 空 HOME：send_message 会先 listSessions，别扫真实会话（zstd 解压很慢）。
   const home = mkdtempSync(join(tmpdir(), "magpie-hud-send-"));
   const wasHome = process.env.MAGPIE_AGENTS_HOME;
+  const wasDsh = process.env.DSH_HOME;
   process.env.MAGPIE_AGENTS_HOME = home;
+  delete process.env.DSH_HOME;
   try {
     const hooks = { tool: AGENTS_TOOLS };
     const out = await hooks.tool.send_message.execute({ to: "none", text: "hi" }, {});
@@ -199,6 +220,7 @@ test("send_message and get_message answer instead of a milestone message", async
     assert.equal(got.state, "unknown");
     assert.ok(typeof got.reason === "string" && got.reason.length > 0);
   } finally {
+    if (wasDsh == null) delete process.env.DSH_HOME; else process.env.DSH_HOME = wasDsh;
     if (wasHome == null) delete process.env.MAGPIE_AGENTS_HOME; else process.env.MAGPIE_AGENTS_HOME = wasHome;
     rmSync(home, { recursive: true, force: true });
   }
@@ -207,7 +229,9 @@ test("send_message and get_message answer instead of a milestone message", async
 test("start_session refuses a call with no text instead of a milestone message", async () => {
   const home = mkdtempSync(join(tmpdir(), "magpie-hud-start-"));
   const wasHome = process.env.MAGPIE_AGENTS_HOME;
+  const wasDsh = process.env.DSH_HOME;
   process.env.MAGPIE_AGENTS_HOME = home;
+  delete process.env.DSH_HOME;
   try {
     const hooks = { tool: AGENTS_TOOLS };
     const out = await hooks.tool.start_session.execute({ client: "claude" }, {});
@@ -215,6 +239,7 @@ test("start_session refuses a call with no text instead of a milestone message",
     assert.equal(parsed.state, "refused");
     assert.ok(String(parsed.reason).length > 0, "refused with a reason");
   } finally {
+    if (wasDsh == null) delete process.env.DSH_HOME; else process.env.DSH_HOME = wasDsh;
     if (wasHome == null) delete process.env.MAGPIE_AGENTS_HOME; else process.env.MAGPIE_AGENTS_HOME = wasHome;
     rmSync(home, { recursive: true, force: true });
   }

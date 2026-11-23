@@ -16,19 +16,22 @@ const here = new URL(".", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$
 const FAKE_CLAUDE = "node " + join(here, "fixtures", "fake-claude.mjs");
 const FAKE_CODEX = "node " + join(here, "fake-codex.mjs");
 
-/** 每个用例自己一份 HOME：工具会读会话目录、消息日志、任务夹，不能互相串。 */
+/** 每个用例自己一份 HOME：工具会读会话目录、消息日志、任务夹，不能互相串。
+ *  另外宿主进程（DSH）会带着 DSH_HOME / CODEX_HOME / CLAUDE_CONFIG_DIR /
+ *  GEMINI_CLI_HOME 进来——不隔离掉，「空环境」就会扫到机器上真实的会话目录。 */
 function withHome(fn) {
   return async () => {
     const home = mkdtempSync(join(tmpdir(), "magpie-hud-contract-"));
-    const saved = { home: process.env.MAGPIE_AGENTS_HOME, claude: process.env.MAGPIE_AGENTS_CLAUDE_CMD, codex: process.env.MAGPIE_AGENTS_CODEX_CMD };
+    const isEnv = ["MAGPIE_AGENTS_HOME", "MAGPIE_AGENTS_CLAUDE_CMD", "MAGPIE_AGENTS_CODEX_CMD", "DSH_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "GEMINI_CLI_HOME"];
+    const saved = {};
+    for (const key of isEnv) saved[key] = process.env[key];
     process.env.MAGPIE_AGENTS_HOME = home;
-    delete process.env.MAGPIE_AGENTS_CLAUDE_CMD;
-    delete process.env.MAGPIE_AGENTS_CODEX_CMD;
+    for (const key of ["MAGPIE_AGENTS_CLAUDE_CMD", "MAGPIE_AGENTS_CODEX_CMD", "DSH_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "GEMINI_CLI_HOME"]) delete process.env[key];
     try {
       await fn(home);
     } finally {
-      for (const [key, env] of [["home", "MAGPIE_AGENTS_HOME"], ["claude", "MAGPIE_AGENTS_CLAUDE_CMD"], ["codex", "MAGPIE_AGENTS_CODEX_CMD"]]) {
-        if (saved[key] == null) delete process.env[env]; else process.env[env] = saved[key];
+      for (const key of isEnv) {
+        if (saved[key] == null) delete process.env[key]; else process.env[key] = saved[key];
       }
       rmSync(home, { recursive: true, force: true });
     }

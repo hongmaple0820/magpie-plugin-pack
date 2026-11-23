@@ -63,7 +63,7 @@ function saveCache() {
 
 function readText(file) {
   const raw = readFileSync(file);
-  if (!file.endsWith(".zstd")) return raw.toString("utf8");
+  if (!/\.zst|\.zstd$/.test(file)) return raw.toString("utf8");
   if (!zstd) return "";
   try { return new TextDecoder().decode(zstd(new Uint8Array(raw))); } catch { return ""; }
 }
@@ -71,7 +71,7 @@ function readText(file) {
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const bucketOf = (ms) => Math.floor(ms / HOUR) * HOUR;
 
-// 一个文件里所有 token 事件按小时桶聚合：{"<bucketAt>": [in, out, cacheRead]}
+// 一个文件里所有 token 事件按小时桶聚合：{"<bucketAt>": [in, out, cacheRead, {model: [in, out]}]}
 function hoursOf(file, client) {
   const hours = Object.create(null);
   const add = (at, i, o, c, model) => {
@@ -79,7 +79,10 @@ function hoursOf(file, client) {
     const k = String(bucketOf(at));
     const row = hours[k] ?? (hours[k] = [0, 0, 0, Object.create(null)]);
     row[0] += i; row[1] += o; row[2] += c;
-    if (model) row[3][model] = (row[3][model] ?? 0) + i + o;
+    if (model) {
+      const m = row[3][model] ?? (row[3][model] = [0, 0]);
+      m[0] += i; m[1] += o;
+    }
   };
   const text = readText(file);
   if (!text) return hours;
@@ -98,13 +101,22 @@ function hoursOf(file, client) {
       const u = j.message.usage;
       add(at, num(u.input_tokens) + num(u.cache_creation_input_tokens), num(u.output_tokens), num(u.cache_read_input_tokens), j.message?.model ?? null);
     } else if (client === "codex") {
-      const payload = j?.payload;
-      if (j?.type !== "event_msg" || payload?.type !== "token_count") continue;
+      // 两种格式（本机实测）：
+      //   新：{type:"token_usage_record", timestamp, payload:{usage:{input_tokens,
+      //       cached_input_tokens, cache_write_input_tokens, output_tokens, …}}}
+      //   旧：{type:"event_msg", timestamp, payload:{type:"token_count",
+      //       info:{last_token_usage|total_token_usage}}}
       const at = Date.parse(j.timestamp ?? "");
       if (!Number.isFinite(at)) continue;
-      const u = payload?.info?.last_token_usage ?? payload?.info?.total_token_usage;
-      if (!u) continue;
-      add(at, num(u.input_tokens), num(u.output_tokens), num(u.cached_input_tokens), payload?.info?.model ?? null);
+      if (j?.type === "token_usage_record") {
+        const u = j.payload?.usage;
+        if (!u) continue;
+        add(at, num(u.input_tokens), num(u.output_tokens), num(u.cached_input_tokens) + num(u.cache_write_input_tokens), j.payload?.model ?? null);
+      } else if (j?.type === "event_msg" && j.payload?.type === "token_count") {
+        const u = j.payload?.info?.last_token_usage ?? j.payload?.info?.total_token_usage;
+        if (!u) continue;
+        add(at, num(u.input_tokens), num(u.output_tokens), num(u.cached_input_tokens), j.payload?.info?.model ?? null);
+      }
     }
   }
   return hours;
@@ -139,7 +151,7 @@ function candidates(fromMs) {
     for (const e of entries) {
       const p = join(dir, e.name);
       if (e.isDirectory()) { walk(p, client, level + 1); continue; }
-      if (!/\.jsonl(\.zstd)?$/.test(e.name)) continue;
+      if (!/\.jsonl(\.zst|\.zstd)?$/.test(e.name)) continue;
       let st;
       try { st = statSync(p); } catch { continue; }
       if (st.mtimeMs >= fromMs) out.push({ path: p, client, mtimeMs: st.mtimeMs, size: st.size });
@@ -176,9 +188,10 @@ function aggregate(period, files) {
       const cl = byClient[f.client] ?? (byClient[f.client] = { in: 0, out: 0, cacheRead: 0, total: 0 });
       cl.in += i; cl.out += o; cl.cacheRead += c; cl.total += i + o;
 
-      for (const [model, sum] of Object.entries(models ?? {})) {
+      for (const [model, io] of Object.entries(models ?? {})) {
         const m = byModel.get(model) ?? (byModel.set(model, { model, client: f.client, in: 0, out: 0 }), byModel.get(model));
-        m.in += sum; m.out += 0;
+        // models 现在是 [in, out] 数组（见 hoursOf 的 add），不再把 in+out 全记到 in 上。
+        m.in += io[0]; m.out += io[1];
       }
       totals.in += i; totals.out += o; totals.cacheRead += c; totals.total += i + o; totals.events++;
     }
