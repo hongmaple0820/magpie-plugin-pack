@@ -17,6 +17,7 @@ import { homedir } from "node:os";
 import { lastCheckIn } from "./delivery/claude.mjs";
 import { presenceOf } from "./clients.mjs";
 import { sessionTruth } from "./truth/collect.mjs";
+import { codexTruth } from "./truth/codex-collect.mjs";
 
 // fzstd（纯 JS zstd 解压器，Bun 可跑）解 DSH 的 session.v4.jsonl.zstd。
 // 依赖缺失时为 null：压缩转录被跳过，其余客户端与工具不受影响。
@@ -45,7 +46,10 @@ const TITLE_CHARS = 80;
 // 于是第一次扫描之后，每次都是 stat 级——接口秒回，标题最迟一分钟补齐。
 // v3：truth 里新增 title（fold 跟踪 session/title 事件），旧缓存没有这个字段，
 // 必须整体失效一次，否则升级后标题永远停在旧规则的结果上。
-const CACHE_VERSION = 3;
+// v4：codex 行把事件真值（truth）也放进缓存行（sessions.mjs 的 codexSessions
+// 与 DSH 同款：meta 与 truth 同一次 compute 算出、同一份缓存），旧缓存的
+// codex 行没有 truth 字段，整体失效一次，否则升级后 codex 状态停在旧 mtime 值。
+const CACHE_VERSION = 4;
 const CACHE_LIMIT = 5000;
 const cachePath = () => process.env.MAGPIE_HUD_SESSIONS_CACHE || join(homeDir(), ".magpie-hud", "sessions-cache.json");
 
@@ -184,7 +188,9 @@ function mtimeRow(mtimeMs, now = Date.now()) {
 // verified 的意思是「这个 phase 能被证据证伪」，不是一个装饰字段。
 function truthSource(truth, st) {
   const mode = truth?.evidence?.mode ?? "none";
-  const kind = mode === "events" ? "events" : mode === "tap" ? "tap" : "none";
+  // transcript：codex/其它客户端的转录事件折叠（lib/truth/codex-collect.mjs）。
+  // 它与 DSH 的 events/tap 一样是「事件真值」，phase 能被下一条事件证伪。
+  const kind = mode === "events" ? "events" : mode === "tap" ? "tap" : mode === "transcript" ? "transcript" : "none";
   const nowMs = Date.now();
   const raw = truth?.lastEventAt ?? null;
   const lastMs = raw == null ? 0 : Number.isFinite(Number(raw)) ? Number(raw) : Date.parse(raw) || 0;
@@ -291,6 +297,24 @@ function codexUserText(j) {
   return "";
 }
 
+// codex 转录扩展名：.jsonl 明文，或 .jsonl.zst / .jsonl.zstd 整帧 zstd 压缩
+//（本机实测 763 个会话，543 个是 .zst，fzstd 可解压）。
+const CODEX_NAME = /\.jsonl(\.zst|\.zstd)?$/;
+
+// codex 转录的头部文本：明文直读，.zst/.zstd 用 fzstd 整帧解。
+// codex 是单文件整帧压缩，没有 DSH 的多帧布局，不能只解开头——但会话
+// 中位数仅 54KB，整帧解一次是毫秒级；超过 FULL_OK 的才走 readHead 兜底。
+function codexHeadText(file) {
+  if (!/\.zst|\.zstd$/.test(file)) return readHead(file);
+  if (!zstdDecompress) return "";
+  try {
+    const raw = readFileSync(file);
+    return new TextDecoder().decode(zstdDecompress(new Uint8Array(raw)));
+  } catch {
+    return "";
+  }
+}
+
 function codexSessions(now) {
   const root = join(homeDir(), ".codex", "sessions");
   if (!existsSync(root)) return [];
@@ -300,7 +324,7 @@ function codexSessions(now) {
     try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
     for (const e of entries) {
       if (e.isDirectory()) walk(join(dir, e.name));
-      else if (e.isFile() && e.name.endsWith(".jsonl")) files.push(join(dir, e.name));
+      else if (e.isFile() && CODEX_NAME.test(e.name)) files.push(join(dir, e.name));
     }
   };
   walk(root);
@@ -308,33 +332,61 @@ function codexSessions(now) {
   for (const file of files) {
     let st = null;
     try { st = statSync(file); } catch { /* 读不动：只报文件名 */ }
+    // meta 与事件真值在同一个 compute 里算，走 metaOf 的 (mtime,size) 缓存与
+    // 后台补全队列：本机 763 个 codex 会话（398MB 压缩数据），每次 /api/state
+    // 全量重解是打不住 8 秒超时的——命中缓存是 stat 级，未命中后台一个一个解。
     const meta = st
       ? metaOf(file, st, (p) => {
           let head = null;
           let title = "";
           try {
-            for (const j of parseLines(readHead(p))) {
+            for (const j of parseLines(codexHeadText(p))) {
               if (!head && j?.type === "session_meta") head = j?.payload ?? null;
               if (!title) title = codexUserText(j);
               if (head && title) break;
             }
           } catch { /* 读不动：只报文件名 */ }
+          // codex 事件真值：从转录尾部折叠 turn/工具状态（lib/truth/codex-collect.mjs）。
+          // 读不动/解不开 → unknown（带原因），不退回 mtime 猜测。
+          let truth = null;
+          try {
+            truth = codexTruth(p, st);
+          } catch { /* 读不动：保持 unknown，不猜 */ }
+          if (!truth) {
+            truth = {
+              phase: "unknown", state: "unknown", rule: "unknown:unread", title: null,
+              unknown: { reason: "unread", sinceSeq: null }, waiting: null,
+              phaseSinceSeq: null, activity: null, tokens: null, counts: null,
+              lastEventAt: null, lastSeq: null,
+              evidence: { mode: "none", bytes: { offset: 0, size: st?.size ?? 0, truncated: true }, mtimeMs: st?.mtimeMs ?? 0, error: "unread", rule: null, seq: null },
+            };
+          }
           return {
-            id: typeof head?.id === "string" ? head.id : basename(p).slice(0, -6),
+            id: typeof head?.id === "string" ? head.id : basename(p).replace(CODEX_NAME, ""),
             project: typeof head?.cwd === "string" ? head.cwd : "",
             title: title.slice(0, TITLE_CHARS),
+            truth,
           };
         })
       : null;
+    const truth = meta?.truth ?? null;
+    const waiting = truth?.waiting ?? null;
     out.push({
       mtimeMs: st?.mtimeMs ?? 0,
       session: {
-        id: meta?.id || basename(file).slice(0, -6),
+        id: meta?.id || basename(file).replace(CODEX_NAME, ""),
         client: "codex",
         file,
+        pending: waiting
+          ? { kind: waiting.kind, toolName: waiting.toolName ?? waiting.kind, since: waiting.since, askId: waiting.askId, seq: waiting.seq, rule: truth.rule }
+          : null,
         title: meta?.title ?? "",
         project: meta?.project ?? "",
-        ...mtimeRow(st?.mtimeMs ?? 0, now),
+        state: truth?.state ?? "unknown",
+        phase: truth?.phase ?? "unknown",
+        source: truth ? truthSource({ phase: truth.phase, evidence: truth.evidence, lastEventAt: truth.lastEventAt }, st) : mtimeRow(st?.mtimeMs ?? 0, now).source,
+        evidence: truth?.evidence ?? { mode: "none", bytes: { offset: 0, size: st?.size ?? 0, truncated: true }, mtimeMs: st?.mtimeMs ?? 0, error: null, rule: null, seq: null },
+        truth: truth ? { rule: truth.rule, phase: truth.phase, phaseSinceSeq: truth.phaseSinceSeq, unknown: truth.unknown, activity: truth.activity, tokens: truth.tokens, counts: truth.counts, lastEventAt: truth.lastEventAt, lastSeq: truth.lastSeq } : null,
         reachable: true,
         reason: "Codex 经自身队列收消息，无需插件。",
         self: null,

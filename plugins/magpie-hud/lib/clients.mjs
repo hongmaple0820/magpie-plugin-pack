@@ -15,7 +15,9 @@
 export const CLIENTS = Object.freeze({
   dsh: { id: "dsh", name: "DSH", stateSource: "events", verified: true, presenceSource: null, badge: "evidence" },
   claude: { id: "claude", name: "Claude Code", stateSource: "registry", verified: false, presenceSource: "registry", badge: "online" },
-  codex: { id: "codex", name: "Codex", stateSource: "mtime", verified: false, presenceSource: null, badge: "approx" },
+  // codex：v8 起有事件真值（lib/truth/codex-collect.mjs 折叠 task_started/
+  // task_complete/工具调用），从 mtime 猜测升级为 events —— phase 可由事件证伪。
+  codex: { id: "codex", name: "Codex", stateSource: "events", verified: true, presenceSource: null, badge: "evidence" },
   antigravity: { id: "antigravity", name: "Antigravity", stateSource: "mtime", verified: false, presenceSource: null, badge: "approx" },
 });
 

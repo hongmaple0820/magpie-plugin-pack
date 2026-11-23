@@ -1,5 +1,38 @@
 # 变更记录 · 鹊楼 (magpie-hud)
 
+## 未发布 — Codex 事件真值与 token 源修复（2026-11-18）
+
+「多 agent 状态没实现、token 计量不完善」的落地：本机 `~/.codex/sessions` 实测 763 个会话，
+543 个是 `.jsonl.zst`（zstd 压缩），而旧扫描只认 `.jsonl`——Codex 会话一个都扫不到。
+
+### 新
+
+- `lib/truth/codex-fold.mjs`：Codex 事件 reducer（`task_started`/`task_complete`/
+  `turn_aborted` 判 turn 开关，`custom_tool_call(_output)` 判工具在跑，
+  `request_user_input_async` 判「等你回答」；ordinal 缺口/无证据一律 unknown，不猜 mtime）。
+- `lib/truth/codex-collect.mjs`：读 Codex 转录（`.jsonl`/`.zst`/`.zstd`）尾部窗口折叠，
+  输出与 DSH `sessionTruth` 同构的 `phase/state/rule/evidence`（`source.kind="transcript"`）。
+- `test/codex-truth.test.mjs`：12 个场景（turn 开/收、用户消息、工具挂起、等输入、
+  中断清理、ordinal 缺口、幂等、`.zst`/明文文件真值）。
+
+### 修
+
+- `sessions.mjs`：Codex 会话扫描支持 `.jsonl.zst/.zstd`；状态改由事件真值判定
+  （真值走 `metaOf` 的 (mtime,size) 缓存 + 后台补全队列，763 个会话不拖 8 秒轮询）；
+  `truthSource` 认 `transcript` 为可证伪来源；缓存版本 3→4。
+- `usage/tokens.mjs`：修 `byModel` 的 output 恒 0 bug（model 计数拆成 [in, out]）；
+  Codex 支持新 `token_usage_record` 格式（`input/cached/cache_write/output/reasoning`）
+  与旧 `token_count`；转录源可读 `.zst/.zstd`。
+- `clients.mjs`：Codex 状态源 `mtime → events`，徽标「近似 → 证据」。
+- 测试环境隔离（预存缺陷）：DSH 宿主把 `DSH_HOME` 带进测试进程，「空环境」测试会扫到
+  真实 `~/.dsh/sessions`。`tools-contract.test.mjs` 的 `withHome` 与 `tools.test.mjs`
+  补隔离/钉死 `DSH_HOME`（及 `CODEX_HOME`/`CLAUDE_CONFIG_DIR`/`GEMINI_CLI_HOME`）。
+
+### 验收
+
+`node --test test/*.test.mjs` 199/199（含新增 codex 真值 12 项），仓库根 `npm test`
+全插件通过。
+
 ## 未发布 — 桌面 HUD 换成页面外壳（2026-11-16）
 
 「桌面上没看到页面」「太丑太模糊」的直接修法：不再用 canvas 手绘，改成 tao + wry 开一个
